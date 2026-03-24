@@ -26,21 +26,35 @@ class YtDlpService {
     async searchVideos(query, limit = 5) {
         const startTime = Date.now();
         try {
-            // ytsearch<N> for faster results without downloading the full page
-            const args = [
-                `ytsearch${limit}:${query}`,
+            const getArgs = (searchPrefix) => [
+                `${searchPrefix}${limit}:${query}`,
                 '--dump-json',
                 '--no-warnings',
                 '--flat-playlist'
             ];
 
-            const { stdout } = await execFileAsync(this.binPath, args);
+            // Execute both standard YouTube and YouTube Music searches
+            const ytPromise = execFileAsync(this.binPath, getArgs('ytsearch'));
+            const ytmPromise = execFileAsync(this.binPath, getArgs('ytmsearch'));
+
+            const [ytResult, ytmResult] = await Promise.allSettled([ytPromise, ytmPromise]);
+
+            let combinedStdout = '';
+            if (ytResult.status === 'fulfilled') combinedStdout += ytResult.value.stdout + '\n';
+            if (ytmResult.status === 'fulfilled') combinedStdout += ytmResult.value.stdout + '\n';
 
             // Parse multi-line JSON output
-            const lines = stdout.trim().split('\n');
+            const lines = combinedStdout.trim().split('\n');
+            const seenIds = new Set();
+
             const results = lines.map(line => {
+                if (!line) return null;
                 try {
                     const data = JSON.parse(line);
+
+                    if (seenIds.has(data.id)) return null;
+                    seenIds.add(data.id);
+
                     return {
                         title: data.title,
                         videoId: data.id,
@@ -51,15 +65,15 @@ class YtDlpService {
                     logger.warn('Failed to parse a line from yt-dlp search', { line });
                     return null;
                 }
-            }).filter(Boolean); // Filter invalid lines
+            }).filter(Boolean); // Filter invalid lines and duplicates
 
             const execTime = Date.now() - startTime;
-            logger.info('yt-dlp search executed', { query, execTime, resultsCount: results.length });
+            logger.info('yt-dlp combined search executed', { query, execTime, resultsCount: results.length });
 
             return results;
         } catch (error) {
             const execTime = Date.now() - startTime;
-            logger.error('yt-dlp search failed', { query, execTime, error: error.message });
+            logger.error('yt-dlp combined search failed', { query, execTime, error: error.message });
             throw new Error(`Search failed to execute: ${error.message}`);
         }
     }
@@ -70,36 +84,34 @@ class YtDlpService {
      * @returns {Promise<string>}
      */
     async extractAudioStream(videoId) {
-        const startTime = Date.now();
-        try {
-            // -f bestaudio -g 
-            const url = `https://www.youtube.com/watch?v=${videoId}`;
-            const args = [
-                '-f', 'bestaudio[ext=m4a]/bestaudio/best', // fallback chain
-                '-g',
-                '--no-warnings',
-                url
-            ];
+        const url = `https://www.youtube.com/watch?v=${videoId}`;
+        const args = ['-f', 'bestaudio[ext=m4a]/bestaudio/best', '-g', '--no-warnings', '--no-check-certificates', '--rm-cache-dir', url];
 
-            const { stdout } = await execFileAsync(this.binPath, args);
-            const streamUrl = stdout.trim();
+        let lastError = null;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            const startTime = Date.now();
+            try {
+                const { stdout } = await execFileAsync(this.binPath, args);
+                const streamUrl = (stdout || '').trim();
+                const firstUrl = streamUrl.split('\n')[0].trim();
 
-            const execTime = Date.now() - startTime;
-            logger.info('yt-dlp stream extracted', { videoId, execTime });
-
-            if (!streamUrl) {
-                throw new Error('No stream URL returned by yt-dlp');
+                if (firstUrl) {
+                    logger.info('yt-dlp stream extracted', { videoId, attempt, execTime: Date.now() - startTime });
+                    return firstUrl;
+                }
+            } catch (error) {
+                lastError = error;
+                logger.warn('yt-dlp extraction attempt failed', { videoId, attempt, error: error.message });
+                if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
             }
-
-            // Check if it returned multiple lines (sometimes it dumps video and audio links separately if format choice complex; best to take first)
-            const firstUrl = streamUrl.split('\n')[0].trim();
-            return firstUrl;
-
-        } catch (error) {
-            const execTime = Date.now() - startTime;
-            logger.error('yt-dlp stream extraction failed', { videoId, execTime, error: error.message });
-            throw new Error(`Stream extraction failed: ${error.message}`);
         }
+
+        logger.error('yt-dlp stream extraction completely failed', {
+            videoId,
+            error: lastError?.message,
+            stderr: lastError?.stderr
+        });
+        throw new Error(`Stream extraction failed: ${lastError?.message}`);
     }
 }
 

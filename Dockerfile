@@ -1,8 +1,8 @@
 # Use official Node.js lightweight image
 FROM node:18-bullseye-slim
 
-# Install wget and python3 (yt-dlp utilizes Python under the hood)
-RUN apt-get update && apt-get install -y wget python3 \
+# Install wget, python3, and ffmpeg (vital for yt-dlp audio handling)
+RUN apt-get update && apt-get install -y wget python3 ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Download the latest yt-dlp standalone Linux binary and make it executable globally

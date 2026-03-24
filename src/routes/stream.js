@@ -19,12 +19,9 @@ router.get('/', async (req, res) => {
         // Stream URLs change format and contain expiration timestamps from Google Servers
         // so we set TTL slightly smaller than expiry time provided natively to be safe
         const cacheKey = `stream:${videoId}`;
-        const cachedStreamUrl = cacheService.get(cacheKey);
-
-        if (cachedStreamUrl) {
-            logger.info('Stream cache hit', { videoId });
-            return res.json({ stream: cachedStreamUrl });
-        }
+        // Temporarily bypass cache to debug extraction issues
+        // const cachedStreamUrl = cacheService.get(cacheKey);
+        // if (cachedStreamUrl) { return res.json({ stream: cachedStreamUrl }); }
 
         // Fetch stream from service wrapper
         const streamUrl = await ytdlpService.extractAudioStream(videoId);
