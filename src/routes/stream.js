@@ -49,10 +49,19 @@ router.get('/proxy', async (req, res) => {
 
         const child = ytdlpService.spawnStream(id);
 
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Accept-Ranges', 'none'); // Direct pipe doesn't easily support ranges
+        // Set correct Content-Type for m4a streams
+        res.setHeader('Content-Type', 'audio/mp4');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Transfer-Encoding', 'chunked');
 
+        // Pipe stdout to response
         child.stdout.pipe(res);
+
+        // Handle errors and cleanup
+        child.on('error', (err) => {
+            logger.error('yt-dlp spawn error', { id, error: err.message });
+            if (!res.headersSent) res.status(500).send("Extraction error");
+        });
 
         child.stderr.on('data', (data) => {
             const msg = data.toString();
@@ -61,10 +70,11 @@ router.get('/proxy', async (req, res) => {
 
         child.on('close', (code) => {
             if (code !== 0) logger.warn('yt-dlp proxy closed with code', { id, code });
+            res.end();
         });
 
         req.on('close', () => {
-            child.kill();
+            child.kill('SIGTERM');
         });
 
     } catch (error) {
