@@ -45,20 +45,32 @@ router.get('/proxy', async (req, res) => {
         const { id } = req.query;
         if (!id) return res.status(400).send("ID required");
 
-        logger.info('Proxying stream requested (buffered)', { id });
+        logger.info('Proxying stream requested (fast raw)', { id });
 
-        // Download/Buffer to disk first (Crucial for iOS Range support)
-        const filePath = await ytdlpService.downloadToTmp(id);
+        const child = ytdlpService.spawnRawStream(id);
 
-        // Serve the static file
-        // res.sendFile handles Range requests (206) and Content-Type automatically
-        res.sendFile(filePath, (err) => {
-            if (err) {
-                logger.error('Error sending buffered file', { id, error: err.message });
-                if (!res.headersSent) res.status(500).send("Streaming failed");
-            } else {
-                logger.info('Buffered stream sent successfully', { id });
-            }
+        res.setHeader('Content-Type', 'audio/mp4');
+        res.setHeader('Accept-Ranges', 'bytes'); // Tell player we support it (even if we don't for seeking)
+
+        child.stdout.pipe(res);
+
+        child.on('error', (err) => {
+            logger.error('Stream spawn error', { id, error: err.message });
+            if (!res.headersSent) res.status(500).send("Extraction error");
+        });
+
+        child.stderr.on('data', (data) => {
+            const msg = data.toString();
+            if (msg.includes('ERROR')) logger.error('yt-dlp error', { id, msg });
+        });
+
+        child.on('close', (code) => {
+            if (code !== 0) logger.warn('yt-dlp closed with code', { id, code });
+            res.end();
+        });
+
+        req.on('close', () => {
+            child.kill('SIGTERM');
         });
 
     } catch (error) {

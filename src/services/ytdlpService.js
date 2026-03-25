@@ -82,6 +82,30 @@ class YtDlpService {
     }
 
     /**
+     * Spawns a yt-dlp process to stream the raw m4a data directly.
+     * Fastest method, avoids transcoding overhead.
+     */
+    spawnRawStream(videoId) {
+        const url = `https://www.youtube.com/watch?v=${videoId}`;
+        const args = [
+            '-f', 'bestaudio[ext=m4a]/bestaudio/best',
+            '-o', '-', // Output to stdout
+            '--no-playlist',
+            '--no-warnings',
+            '--no-check-certificates',
+            '--rm-cache-dir',
+            url
+        ];
+
+        if (require('fs').existsSync(this.cookiesPath)) {
+            args.push('--cookies', this.cookiesPath);
+        }
+
+        const { spawn } = require('child_process');
+        return spawn(this.binPath, args);
+    }
+
+    /**
      * Extract direct playback stream URL using the REAL yt-dlp binary.
      * This is the most robust method and bypasses "Sign in to confirm you're not a bot".
      */
