@@ -26,6 +26,13 @@ class YtDlpService {
     /**
      * Search for videos using yt-search (JS-based, fast and rarely blocked)
      */
+    getCookiesContent() {
+        if (require('fs').existsSync(this.cookiesPath)) {
+            return require('fs').readFileSync(this.cookiesPath, 'utf8');
+        }
+        return null;
+    }
+
     async searchVideos(query, limit = 10) {
         const startTime = Date.now();
         try {

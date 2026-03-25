@@ -51,16 +51,34 @@ router.get('/proxy', async (req, res) => {
         const { url: youtubeUrl, size: totalSize } = streamInfo;
 
         const headers = {
-            'User-Agent': req.get('User-Agent') || 'Mozilla/5.0'
+            'User-Agent': req.get('User-Agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         };
+
+        // Add simplified cookie support if available
+        const rawCookies = ytdlpService.getCookiesContent();
+        if (rawCookies) {
+            // Very basic Netscape to HTTP cookie conversion for essential session bits
+            const cookieLines = rawCookies.split('\n').filter(l => l && !l.startsWith('#'));
+            const cookies = cookieLines.map(l => {
+                const parts = l.split('\t');
+                return `${parts[5]}=${parts[6]}`;
+            }).join('; ');
+            headers['Cookie'] = cookies;
+        }
 
         if (req.headers.range) {
             headers['Range'] = req.headers.range;
-            logger.info('Forwarding range request', { id, range: req.headers.range });
         }
+
+        logger.info('Forwarding request to YouTube', { id, range: req.headers.range, hasCookies: !!headers['Cookie'] });
 
         // Use native fetch (Node 20) to relay the request
         const response = await fetch(youtubeUrl, { headers });
+
+        if (!response.ok && response.status !== 206) {
+            logger.error('YouTube responded with error', { id, status: response.status, statusText: response.statusText });
+            return res.status(response.status).send(`YouTube Error: ${response.statusText}`);
+        }
 
         // Forward status and headers from YouTube
         res.status(response.status);
