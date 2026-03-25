@@ -1,5 +1,4 @@
 const ytSearch = require('yt-search');
-const play = require('play-dl');
 const logger = require('../utils/logger');
 const { execFile } = require('child_process');
 const util = require('util');
@@ -7,61 +6,32 @@ const execFileAsync = util.promisify(execFile);
 const os = require('os');
 const path = require('path');
 
-// Critical: Vercel is read-only. Redirect HOME and TMP to /tmp for libraries that write cache
-if (process.env.VERCEL) {
-    process.env.HOME = '/tmp';
-    process.env.TMPDIR = '/tmp';
-    process.env.YTDL_NO_UPDATE = '1';
-    try {
-        process.chdir('/tmp');
-    } catch (e) {
-        // Fallback
-    }
-}
-
-// Optional: Auth cookies to bypass bot detection on Vercel
-if (process.env.YT_COOKIES) {
-    logger.info('YT_COOKIES detected, length:', process.env.YT_COOKIES.length);
-    try {
-        // For play-dl
-        play.setToken({
-            youtube: {
-                cookie: process.env.YT_COOKIES
-            }
-        });
-        logger.info('play-dl cookies set successfully');
-    } catch (e) {
-        logger.error('Failed to set play-dl cookies', { error: e.message });
-    }
-} else {
-    logger.warn('No YT_COOKIES environment variable found');
-}
-
 /**
  * Service to handle YouTube search and stream extraction.
- * Optimized for Vercel (JS-based) with local (yt-dlp) fallback.
+ * Optimized for Docker environments (Render/Railway) using the real yt-dlp binary.
  */
 class YtDlpService {
     constructor() {
+        // Path to yt-dlp binary. 
+        // In Docker (Docker-bullseye-slim), it will be in /usr/local/bin/yt-dlp
+        // In Windows local dev, it's in the root.
         this.binPath = os.platform() === 'win32'
             ? path.resolve(__dirname, '../../yt-dlp.exe')
-            : 'yt-dlp';
+            : 'yt-dlp'; // Assumes global availability in Linux/Docker
 
-        this.isServerless = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+        // Path to cookies file if it exists
+        this.cookiesPath = path.resolve(__dirname, '../../yt-cookies.txt');
     }
 
     /**
-     * Search for videos using yt-search (JS-based)
+     * Search for videos using yt-search (JS-based, fast and rarely blocked)
      */
     async searchVideos(query, limit = 10) {
         const startTime = Date.now();
         try {
-            logger.info('Vercel Search Attempt', { query, limit });
-
             const r = await ytSearch(query);
-            if (!r || !r.videos) throw new Error('No videos returned from yt-search');
-
             const videos = r.videos.slice(0, limit);
+
             const results = videos.map(video => ({
                 title: video.title,
                 videoId: video.videoId,
@@ -70,76 +40,75 @@ class YtDlpService {
             }));
 
             const execTime = Date.now() - startTime;
-            logger.info('Vercel Search Succeeded', { query, execTime, count: results.length });
+            logger.info('Search executed successfully', { query, execTime, count: results.length });
 
             return results;
         } catch (error) {
-            const execTime = Date.now() - startTime;
-            logger.error('Vercel Search Failed', { query, execTime, error: error.message });
-
-            if (!this.isServerless) {
-                return this.searchVideosYtDlp(query, limit);
-            }
-            throw new Error(`Search failed: ${error.message}`);
+            logger.error('Search failed', { query, error: error.message });
+            // Fallback to yt-dlp for search if JS fails
+            return this.searchVideosYtDlp(query, limit);
         }
     }
 
     /**
-     * Extract direct playback stream URL using play-dl (JS-based)
+     * Extract direct playback stream URL using the REAL yt-dlp binary.
+     * This is the most robust method and bypasses "Sign in to confirm you're not a bot".
      */
     async extractAudioStream(videoId) {
         const startTime = Date.now();
-        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const url = `https://www.youtube.com/watch?v=${videoId}`;
+
+        // Build arguments for yt-dlp
+        // -f bestaudio[ext=m4a] ensures we get a format compatible with mobile players
+        const args = [
+            '-f', 'bestaudio[ext=m4a]/bestaudio/best',
+            '-g', // Just get the URL
+            '--no-warnings',
+            '--no-check-certificates',
+            '--rm-cache-dir',
+            url
+        ];
+
+        // Add cookies if the file exists (VITAL for bypassing bot detection)
+        const fs = require('fs');
+        if (fs.existsSync(this.cookiesPath)) {
+            args.push('--cookies', this.cookiesPath);
+            logger.info('Using yt-cookies.txt for extraction', { videoId });
+        }
+
         try {
-            logger.info('Vercel Extraction Attempt (play-dl)', { videoId });
+            const { stdout } = await execFileAsync(this.binPath, args);
+            const streamUrl = (stdout || '').split('\n')[0].trim();
 
-            // play-dl is generally more resilient to YouTube changes than ytdl-core variants
-            const info = await play.video_info(videoUrl);
-
-            if (!info || !info.format) {
-                throw new Error('Could not retrieve video information from play-dl');
-            }
-
-            // Refined selection: prefer audio/m4a with a valid URL
-            const format = info.format.find(f => f.hasAudio && !f.hasVideo && f.container === 'm4a' && f.url)
-                || info.format.find(f => f.hasAudio && !f.hasVideo && f.url)
-                || info.format.find(f => f.hasAudio && f.url);
-
-            if (format && format.url) {
+            if (streamUrl && streamUrl.startsWith('http')) {
                 const execTime = Date.now() - startTime;
-                logger.info('Vercel Extraction Succeeded', { videoId, execTime });
-                return format.url;
+                logger.info('yt-dlp extraction succeeded', { videoId, execTime });
+                return streamUrl;
             }
-
-            throw new Error('No playable audio format found with a valid URL');
+            throw new Error('yt-dlp returned no valid URL');
         } catch (error) {
             const execTime = Date.now() - startTime;
-            logger.error('Vercel Extraction Failed', { videoId, execTime, error: error.message });
-
-            if (!this.isServerless) {
-                logger.info('Falling back to local yt-dlp extraction');
-                return this.extractAudioStreamYtDlp(videoId);
-            }
-
+            logger.error('yt-dlp extraction failed', { videoId, execTime, error: error.message });
             throw new Error(`Stream extraction failed: ${error.message}`);
         }
     }
 
     /**
-     * Legacy yt-dlp search
+     * Backup yt-dlp search
      */
     async searchVideosYtDlp(query, limit = 5) {
-        const getArgs = (searchPrefix) => [
-            `${searchPrefix}${limit}:${query}`,
+        const args = [
+            `ytsearch${limit}:${query}`,
             '--dump-json',
             '--no-warnings',
             '--flat-playlist'
         ];
 
         try {
-            const { stdout } = await execFileAsync(this.binPath, getArgs('ytsearch'));
+            const { stdout } = await execFileAsync(this.binPath, args);
             const lines = stdout.trim().split('\n');
             const seenIds = new Set();
+
             return lines.map(line => {
                 if (!line) return null;
                 try {
@@ -147,30 +116,15 @@ class YtDlpService {
                     if (seenIds.has(data.id)) return null;
                     seenIds.add(data.id);
                     return {
-                        title: data.title, videoId: data.id,
+                        title: data.title,
+                        videoId: data.id,
                         thumbnail: data.thumbnails?.[0]?.url || data.thumbnail || null,
                         duration: data.duration || 0
                     };
                 } catch (err) { return null; }
             }).filter(Boolean);
         } catch (error) {
-            throw new Error(`yt-dlp fallback failed: ${error.message}`);
-        }
-    }
-
-    /**
-     * Legacy yt-dlp extraction
-     */
-    async extractAudioStreamYtDlp(videoId) {
-        const url = `https://www.youtube.com/watch?v=${videoId}`;
-        const args = ['-f', 'bestaudio[ext=m4a]/bestaudio/best', '-g', '--no-warnings', '--no-check-certificates', '--rm-cache-dir', url];
-        try {
-            const { stdout } = await execFileAsync(this.binPath, args);
-            const firstUrl = (stdout || '').split('\n')[0].trim();
-            if (firstUrl) return firstUrl;
-            throw new Error('yt-dlp returned empty stdout');
-        } catch (error) {
-            throw new Error(`yt-dlp extraction failed: ${error.message}`);
+            throw new Error(`yt-dlp fallback search failed: ${error.message}`);
         }
     }
 }
