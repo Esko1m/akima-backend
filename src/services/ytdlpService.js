@@ -1,5 +1,5 @@
 const ytSearch = require('yt-search');
-const play = require('play-dl');
+const ytdl = require('@distube/ytdl-core');
 const logger = require('../utils/logger');
 const { execFile } = require('child_process');
 const util = require('util');
@@ -17,7 +17,6 @@ class YtDlpService {
             ? path.resolve(__dirname, '../../yt-dlp.exe')
             : 'yt-dlp';
 
-        // VERCEL=1 is set by Vercel in production
         this.isServerless = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     }
 
@@ -49,7 +48,6 @@ class YtDlpService {
             logger.error('Vercel Search Failed', { query, execTime, error: error.message });
 
             if (!this.isServerless) {
-                logger.info('Falling back to local yt-dlp search');
                 return this.searchVideosYtDlp(query, limit);
             }
             throw new Error(`Search failed: ${error.message}`);
@@ -57,26 +55,33 @@ class YtDlpService {
     }
 
     /**
-     * Extract direct playback stream URL using play-dl (JS-based)
+     * Extract direct playback stream URL using ytdl-core with robust headers
      */
     async extractAudioStream(videoId) {
         const startTime = Date.now();
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
         try {
-            logger.info('Vercel Extraction Attempt', { videoId });
+            logger.info('Vercel Extraction Attempt (ytdl-core)', { videoId });
 
-            // Set User-Agent to something common to avoid blocking
-            // play-dl handles this internally but we can try to be more robust
-            const info = await play.video_info(videoUrl);
+            // Using @distube/ytdl-core with a specific iOS User-Agent to bypass blocking
+            // This is a known workaround for Vercel/Cloudflare environments
+            const options = {
+                requestOptions: {
+                    headers: {
+                        'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X; US; en_US; ad-free; any)',
+                        'Accept': '*/*',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                    }
+                }
+            };
 
-            if (!info || !info.format) {
-                throw new Error('Could not retrieve video information from play-dl');
-            }
+            const info = await ytdl.getInfo(videoUrl, options);
 
-            // Refined selection: filter out non-HTTP URLs if any, and prefer audio/m4a
-            const format = info.format.find(f => f.hasAudio && !f.hasVideo && f.container === 'm4a' && f.url)
-                || info.format.find(f => f.hasAudio && !f.hasVideo && f.url)
-                || info.format.find(f => f.hasAudio && f.url);
+            // Filter only audio formats and select the best one
+            const format = ytdl.chooseFormat(info.formats, {
+                quality: 'highestaudio',
+                filter: 'audioonly'
+            });
 
             if (format && format.url) {
                 const execTime = Date.now() - startTime;
