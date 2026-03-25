@@ -12,6 +12,11 @@ if (process.env.VERCEL) {
     process.env.HOME = '/tmp';
     process.env.TMPDIR = '/tmp';
     process.env.YTDL_NO_UPDATE = '1';
+    try {
+        process.chdir('/tmp');
+    } catch (e) {
+        // Fallback or ignore if chdir fails
+    }
 }
 
 /**
