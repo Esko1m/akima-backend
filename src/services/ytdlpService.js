@@ -21,15 +21,20 @@ if (process.env.VERCEL) {
 
 // Optional: Auth cookies to bypass bot detection on Vercel
 if (process.env.YT_COOKIES) {
+    logger.info('YT_COOKIES detected, length:', process.env.YT_COOKIES.length);
     try {
+        // For play-dl
         play.setToken({
             youtube: {
                 cookie: process.env.YT_COOKIES
             }
         });
+        logger.info('play-dl cookies set successfully');
     } catch (e) {
         logger.error('Failed to set play-dl cookies', { error: e.message });
     }
+} else {
+    logger.warn('No YT_COOKIES environment variable found');
 }
 
 /**
