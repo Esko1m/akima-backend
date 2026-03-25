@@ -24,24 +24,52 @@ router.get('/', async (req, res) => {
         // if (cachedStreamUrl) { return res.json({ stream: cachedStreamUrl }); }
 
         // Fetch stream from service wrapper
-        const streamUrl = await ytdlpService.extractAudioStream(videoId);
+        // Instead of returning the raw YouTube URL (which is IP-locked),
+        // we return a link to our own proxy endpoint.
+        const proxyUrl = `https://${req.get('host')}/stream/proxy?id=${videoId}`;
 
-        // Update Cache (TTL = 30 minutes normally fine for long-lasting YouTube stream tokens)
-        cacheService.set(cacheKey, streamUrl, 1800);
-        logger.info('Stream cache miss, stored in cache', { videoId });
-
-        return res.json({ stream: streamUrl });
+        return res.json({ stream: proxyUrl });
 
     } catch (error) {
         if (error instanceof z.ZodError) {
             return res.status(400).json({ error: error.errors.map(e => e.message).join(", ") });
         }
-
-        if (error.message.includes('Stream extraction failed')) {
-            return res.status(502).json({ error: error.message });
-        }
-
+        logger.error('Stream API Error', { error: error.message });
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// New Proxy Endpoint: Actually pipes the data from yt-dlp to the client
+router.get('/proxy', async (req, res) => {
+    try {
+        const { id } = req.query;
+        if (!id) return res.status(400).send("ID required");
+
+        logger.info('Proxying stream requested', { id });
+
+        const child = ytdlpService.spawnStream(id);
+
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Accept-Ranges', 'none'); // Direct pipe doesn't easily support ranges
+
+        child.stdout.pipe(res);
+
+        child.stderr.on('data', (data) => {
+            const msg = data.toString();
+            if (msg.includes('ERROR')) logger.error('yt-dlp proxy error', { id, msg });
+        });
+
+        child.on('close', (code) => {
+            if (code !== 0) logger.warn('yt-dlp proxy closed with code', { id, code });
+        });
+
+        req.on('close', () => {
+            child.kill();
+        });
+
+    } catch (error) {
+        logger.error('Proxy Stream Error', { error: error.message });
+        res.status(500).send("Proxy failed");
     }
 });
 
