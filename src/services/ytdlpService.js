@@ -15,7 +15,20 @@ if (process.env.VERCEL) {
     try {
         process.chdir('/tmp');
     } catch (e) {
-        // Fallback or ignore if chdir fails
+        // Fallback
+    }
+}
+
+// Optional: Auth cookies to bypass bot detection on Vercel
+if (process.env.YT_COOKIES) {
+    try {
+        play.setToken({
+            youtube: {
+                cookie: process.env.YT_COOKIES
+            }
+        });
+    } catch (e) {
+        logger.error('Failed to set play-dl cookies', { error: e.message });
     }
 }
 
