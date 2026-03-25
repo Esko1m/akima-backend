@@ -47,7 +47,7 @@ router.get('/proxy', async (req, res) => {
 
         logger.info('Proxying stream requested', { id });
 
-        const child = ytdlpService.spawnStream(id);
+        const child = await ytdlpService.spawnStream(id);
 
         // Set correct Content-Type for MP3 streams
         res.setHeader('Content-Type', 'audio/mpeg');

@@ -29,51 +29,50 @@ class YtDlpService {
     async searchVideos(query, limit = 10) {
         const startTime = Date.now();
         try {
+            // First try yt-search (very fast)
             const r = await ytSearch(query);
-            const videos = r.videos.slice(0, limit);
+            if (!r || !r.videos || r.videos.length === 0) throw new Error('yt-search returned no results');
 
-            const results = videos.map(video => ({
+            const videos = r.videos.slice(0, limit);
+            return videos.map(video => ({
                 title: video.title,
                 videoId: video.videoId,
                 thumbnail: video.thumbnail || video.image || null,
                 duration: video.seconds || 0
             }));
-
-            const execTime = Date.now() - startTime;
-            logger.info('Search executed successfully', { query, execTime, count: results.length });
-
-            return results;
         } catch (error) {
-            logger.error('Search failed', { query, error: error.message });
-            // Fallback to yt-dlp for search if JS fails
+            logger.warn('yt-search failed, falling back to yt-dlp search', { query, error: error.message });
             return this.searchVideosYtDlp(query, limit);
         }
     }
 
     /**
-     * Spawns a yt-dlp process to stream audio data directly.
-     * Use this for proxying to bypass IP-locking.
+     * Spawns an ffmpeg process to transcode the YouTube stream to MP3 on the fly.
+     * This is the most compatible way to stream to iOS.
      */
-    spawnStream(videoId) {
-        const url = `https://www.youtube.com/watch?v=${videoId}`;
-        const args = [
-            '-f', 'bestaudio',
-            '--extract-audio',
-            '--audio-format', 'mp3',
-            '-o', '-', // Output to stdout
-            '--no-warnings',
-            '--no-check-certificates',
-            '--rm-cache-dir'
-        ];
+    async spawnStream(videoId) {
+        try {
+            // Step 1: Get the direct URL from yt-dlp (very robust)
+            const streamUrl = await this.extractAudioStream(videoId);
 
-        if (require('fs').existsSync(this.cookiesPath)) {
-            args.push('--cookies', this.cookiesPath);
+            // Step 2: Spawn ffmpeg to transcode to mp3 piped to stdout
+            const { spawn } = require('child_process');
+            const ffmpegPath = os.platform() === 'win32' ? 'ffmpeg' : 'ffmpeg'; // Assumed in PATH
+
+            const args = [
+                '-i', streamUrl,
+                '-f', 'mp3',
+                '-acodec', 'libmp3lame',
+                '-ab', '128k',
+                '-ar', '44100',
+                'pipe:1'
+            ];
+
+            return spawn(ffmpegPath, args);
+        } catch (error) {
+            logger.error('Failed to spawn ffmpeg stream', { videoId, error: error.message });
+            throw error;
         }
-
-        args.push(url);
-
-        const { spawn } = require('child_process');
-        return spawn(this.binPath, args);
     }
 
     /**
