@@ -45,41 +45,25 @@ router.get('/proxy', async (req, res) => {
         const { id } = req.query;
         if (!id) return res.status(400).send("ID required");
 
-        logger.info('Proxying stream requested', { id });
+        logger.info('Proxying stream requested (buffered)', { id });
 
-        const child = await ytdlpService.spawnStream(id);
+        // Download/Buffer to disk first (Crucial for iOS Range support)
+        const filePath = await ytdlpService.downloadToTmp(id);
 
-        // Set correct Content-Type for MP3 streams
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Transfer-Encoding', 'chunked');
-
-        // Pipe stdout to response
-        child.stdout.pipe(res);
-
-        // Handle errors and cleanup
-        child.on('error', (err) => {
-            logger.error('yt-dlp spawn error', { id, error: err.message });
-            if (!res.headersSent) res.status(500).send("Extraction error");
-        });
-
-        child.stderr.on('data', (data) => {
-            const msg = data.toString();
-            if (msg.includes('ERROR')) logger.error('yt-dlp proxy error', { id, msg });
-        });
-
-        child.on('close', (code) => {
-            if (code !== 0) logger.warn('yt-dlp proxy closed with code', { id, code });
-            res.end();
-        });
-
-        req.on('close', () => {
-            child.kill('SIGTERM');
+        // Serve the static file
+        // res.sendFile handles Range requests (206) and Content-Type automatically
+        res.sendFile(filePath, (err) => {
+            if (err) {
+                logger.error('Error sending buffered file', { id, error: err.message });
+                if (!res.headersSent) res.status(500).send("Streaming failed");
+            } else {
+                logger.info('Buffered stream sent successfully', { id });
+            }
         });
 
     } catch (error) {
         logger.error('Proxy Stream Error', { error: error.message });
-        res.status(500).send("Proxy failed");
+        if (!res.headersSent) res.status(500).send("Proxy failed");
     }
 });
 

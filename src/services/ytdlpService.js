@@ -47,32 +47,38 @@ class YtDlpService {
     }
 
     /**
-     * Spawns an ffmpeg process to transcode the YouTube stream to MP3 on the fly.
-     * This is the most compatible way to stream to iOS.
+     * Downloads the audio to a local file in /tmp for buffered streaming.
+     * This ensures Range support for iOS.
      */
-    async spawnStream(videoId) {
-        try {
-            // Step 1: Get the direct URL from yt-dlp (very robust)
-            const streamUrl = await this.extractAudioStream(videoId);
+    async downloadToTmp(videoId) {
+        const filePath = path.join(os.tmpdir(), `${videoId}.mp3`);
 
-            // Step 2: Spawn ffmpeg to transcode to mp3 piped to stdout
-            const { spawn } = require('child_process');
-            const ffmpegPath = os.platform() === 'win32' ? 'ffmpeg' : 'ffmpeg'; // Assumed in PATH
-
-            const args = [
-                '-i', streamUrl,
-                '-f', 'mp3',
-                '-acodec', 'libmp3lame',
-                '-ab', '128k',
-                '-ar', '44100',
-                'pipe:1'
-            ];
-
-            return spawn(ffmpegPath, args);
-        } catch (error) {
-            logger.error('Failed to spawn ffmpeg stream', { videoId, error: error.message });
-            throw error;
+        // If file already exists, just return the path
+        const fs = require('fs');
+        if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            if (stats.size > 10000) return filePath; // Avoid returning empty/broken files
         }
+
+        const streamUrl = await this.extractAudioStream(videoId);
+
+        return new Promise((resolve, reject) => {
+            const { exec } = require('child_process');
+            // Use ffmpeg to transcode and save to temp file
+            // -y overwrites existing (allows retry)
+            const cmd = `ffmpeg -y -i "${streamUrl}" -f mp3 -acodec libmp3lame -ab 128k -ar 44100 "${filePath}"`;
+
+            logger.info('Starting disk-buffered download', { videoId, filePath });
+
+            exec(cmd, (error) => {
+                if (error) {
+                    logger.error('Buffer download failed', { videoId, error: error.message });
+                    return reject(error);
+                }
+                logger.info('Buffer download complete', { videoId });
+                resolve(filePath);
+            });
+        });
     }
 
     /**
