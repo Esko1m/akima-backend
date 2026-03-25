@@ -7,6 +7,13 @@ const execFileAsync = util.promisify(execFile);
 const os = require('os');
 const path = require('path');
 
+// Critical: Vercel is read-only. Redirect HOME and TMP to /tmp for libraries that write cache
+if (process.env.VERCEL) {
+    process.env.HOME = '/tmp';
+    process.env.TMPDIR = '/tmp';
+    process.env.YTDL_NO_UPDATE = '1';
+}
+
 /**
  * Service to handle YouTube search and stream extraction.
  * Optimized for Vercel (JS-based) with local (yt-dlp) fallback.
