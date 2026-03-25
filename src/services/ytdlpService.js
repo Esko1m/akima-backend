@@ -33,6 +33,23 @@ class YtDlpService {
         return null;
     }
 
+    getHttpCookies() {
+        const raw = this.getCookiesContent();
+        if (!raw) return null;
+        try {
+            return raw.split('\n')
+                .filter(l => l && !l.startsWith('#'))
+                .map(l => {
+                    const parts = l.split('\t');
+                    if (parts.length < 7) return null;
+                    return `${parts[5]}=${parts[6]}`;
+                })
+                .filter(Boolean)
+                .join('; ');
+        } catch (e) {
+            return null;
+        }
+    }
     async searchVideos(query, limit = 10) {
         const startTime = Date.now();
         try {

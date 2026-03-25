@@ -45,70 +45,53 @@ router.get('/proxy', async (req, res) => {
         const { id } = req.query;
         if (!id) return res.status(400).send("ID required");
 
-        logger.info('Proxying stream requested (range-aware)', { id });
+        logger.info('Proxying stream requested (ytdl-core)', { id });
 
-        const streamInfo = await ytdlpService.getStreamInfo(id);
-        const { url: youtubeUrl, size: totalSize } = streamInfo;
+        const cookies = ytdlpService.getHttpCookies();
+        const ytdl = require('@distube/ytdl-core');
 
-        const headers = {
-            'User-Agent': req.get('User-Agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        const options = {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+            }
         };
 
-        // Add simplified cookie support if available
-        const rawCookies = ytdlpService.getCookiesContent();
-        if (rawCookies) {
-            // Very basic Netscape to HTTP cookie conversion for essential session bits
-            const cookieLines = rawCookies.split('\n').filter(l => l && !l.startsWith('#'));
-            const cookies = cookieLines.map(l => {
-                const parts = l.split('\t');
-                return `${parts[5]}=${parts[6]}`;
-            }).join('; ');
-            headers['Cookie'] = cookies;
+        if (cookies) {
+            options.requestOptions.headers['Cookie'] = cookies;
         }
 
         if (req.headers.range) {
-            headers['Range'] = req.headers.range;
+            options.range = {
+                start: parseInt(req.headers.range.replace('bytes=', '').split('-')[0]) || 0
+            };
+            logger.info('Forwarding range request via ytdl-core', { id, range: req.headers.range });
         }
 
-        logger.info('Forwarding request to YouTube', { id, range: req.headers.range, hasCookies: !!headers['Cookie'] });
+        const stream = ytdl(`https://www.youtube.com/watch?v=${id}`, options);
 
-        // Use native fetch (Node 20) to relay the request
-        const response = await fetch(youtubeUrl, { headers });
+        stream.on('response', (response) => {
+            // Relay status and essential headers
+            res.status(response.statusCode);
+            res.setHeader('Content-Type', 'audio/mp4');
+            res.setHeader('Accept-Ranges', 'bytes');
 
-        if (!response.ok && response.status !== 206) {
-            logger.error('YouTube responded with error', { id, status: response.status, statusText: response.statusText });
-            return res.status(response.status).send(`YouTube Error: ${response.statusText}`);
-        }
-
-        // Forward status and headers from YouTube
-        res.status(response.status);
-
-        // Essential headers for iOS
-        res.setHeader('Accept-Ranges', 'bytes');
-        res.setHeader('Content-Type', 'audio/mp4');
-
-        if (response.headers.get('content-range')) {
-            res.setHeader('Content-Range', response.headers.get('content-range'));
-        }
-        if (response.headers.get('content-length')) {
-            res.setHeader('Content-Length', response.headers.get('content-length'));
-        }
-
-        // Pipe the body
-        const reader = response.body.getReader();
-        const pump = async () => {
-            const { done, value } = await reader.read();
-            if (done) {
-                res.end();
-                return;
+            if (response.headers['content-range']) {
+                res.setHeader('Content-Range', response.headers['content-range']);
             }
-            res.write(value);
-            return pump();
-        };
+            if (response.headers['content-length']) {
+                res.setHeader('Content-Length', response.headers['content-length']);
+            }
+        });
 
-        pump().catch(err => {
-            logger.error('Stream pump error', { id, error: err.message });
-            res.end();
+        stream.pipe(res);
+
+        stream.on('error', (err) => {
+            logger.error('ytdl-core stream error', { id, error: err.message });
+            if (!res.headersSent) res.status(500).send("Streaming failed");
         });
 
     } catch (error) {
