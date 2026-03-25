@@ -38,7 +38,7 @@ router.get('/', async (req, res) => {
         }
 
         if (error.message.includes('Stream extraction failed')) {
-            return res.status(502).json({ error: 'Failed to extract audio stream from source.' });
+            return res.status(502).json({ error: error.message });
         }
 
         res.status(500).json({ error: 'Internal Server Error' });
