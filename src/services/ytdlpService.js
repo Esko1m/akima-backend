@@ -1,5 +1,5 @@
 const ytSearch = require('yt-search');
-const ytdl = require('@distube/ytdl-core');
+const play = require('play-dl');
 const logger = require('../utils/logger');
 const { execFile } = require('child_process');
 const util = require('util');
@@ -67,33 +67,25 @@ class YtDlpService {
     }
 
     /**
-     * Extract direct playback stream URL using ytdl-core with robust headers
+     * Extract direct playback stream URL using play-dl (JS-based)
      */
     async extractAudioStream(videoId) {
         const startTime = Date.now();
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
         try {
-            logger.info('Vercel Extraction Attempt (ytdl-core)', { videoId });
+            logger.info('Vercel Extraction Attempt (play-dl)', { videoId });
 
-            // Using @distube/ytdl-core with a specific iOS User-Agent to bypass blocking
-            // This is a known workaround for Vercel/Cloudflare environments
-            const options = {
-                requestOptions: {
-                    headers: {
-                        'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X; US; en_US; ad-free; any)',
-                        'Accept': '*/*',
-                        'Accept-Language': 'en-US,en;q=0.9',
-                    }
-                }
-            };
+            // play-dl is generally more resilient to YouTube changes than ytdl-core variants
+            const info = await play.video_info(videoUrl);
 
-            const info = await ytdl.getInfo(videoUrl, options);
+            if (!info || !info.format) {
+                throw new Error('Could not retrieve video information from play-dl');
+            }
 
-            // Filter only audio formats and select the best one
-            const format = ytdl.chooseFormat(info.formats, {
-                quality: 'highestaudio',
-                filter: 'audioonly'
-            });
+            // Refined selection: prefer audio/m4a with a valid URL
+            const format = info.format.find(f => f.hasAudio && !f.hasVideo && f.container === 'm4a' && f.url)
+                || info.format.find(f => f.hasAudio && !f.hasVideo && f.url)
+                || info.format.find(f => f.hasAudio && f.url);
 
             if (format && format.url) {
                 const execTime = Date.now() - startTime;
