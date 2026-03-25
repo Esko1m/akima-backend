@@ -18,21 +18,15 @@ class YtDlpService {
             ? path.resolve(__dirname, '../../yt-dlp.exe')
             : 'yt-dlp';
 
-        // Flag to check if we are on Vercel or similar serverless env
         this.isServerless = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     }
 
     /**
      * Search for videos using yt-search (JS-based, serverless friendly)
-     * @param {string} query 
-     * @param {number} limit 
-     * @returns {Promise<Array>}
      */
     async searchVideos(query, limit = 10) {
         const startTime = Date.now();
         try {
-            logger.info('Starting JS-based search', { query, limit });
-
             const r = await ytSearch(query);
             const videos = r.videos.slice(0, limit);
 
@@ -44,20 +38,53 @@ class YtDlpService {
             }));
 
             const execTime = Date.now() - startTime;
-            logger.info('JS search executed successfully', { query, execTime, resultsCount: results.length });
+            logger.info('Search executed successfully', { query, execTime, resultsCount: results.length });
 
             return results;
         } catch (error) {
             const execTime = Date.now() - startTime;
-            logger.error('JS search failed', { query, execTime, error: error.message });
+            logger.error('Search failed', { query, execTime, error: error.message });
 
-            // Fallback to yt-dlp if local binary exists and JS search fails
             if (!this.isServerless) {
-                logger.info('Attempting yt-dlp search fallback...');
                 return this.searchVideosYtDlp(query, limit);
             }
-
             throw new Error(`Search failed: ${error.message}`);
+        }
+    }
+
+    /**
+     * Extract direct playback stream URL using play-dl (JS-based)
+     * @param {string} videoId 
+     * @returns {Promise<string>}
+     */
+    async extractAudioStream(videoId) {
+        const startTime = Date.now();
+        try {
+            logger.info('Extracting stream via play-dl', { videoId });
+            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+            const info = await play.video_info(videoUrl);
+
+            // Prefer m4a audio only, then any audio only, then any audio
+            const format = info.format.find(f => f.hasAudio && !f.hasVideo && f.container === 'm4a')
+                || info.format.find(f => f.hasAudio && !f.hasVideo)
+                || info.format.find(f => f.hasAudio);
+
+            if (format && format.url) {
+                logger.info('play-dl stream extracted', { videoId, execTime: Date.now() - startTime });
+                return format.url;
+            }
+
+            throw new Error('No playable audio format found for this video');
+        } catch (error) {
+            logger.warn('play-dl extraction failed, attempting fallback', { videoId, error: error.message });
+
+            // Fallback to yt-dlp if on local dev
+            if (!this.isServerless) {
+                return this.extractAudioStreamYtDlp(videoId);
+            }
+
+            throw new Error(`Stream extraction failed: ${error.message}`);
         }
     }
 
@@ -98,37 +125,6 @@ class YtDlpService {
             }).filter(Boolean);
         } catch (error) {
             throw new Error(`yt-dlp fallback failed: ${error.message}`);
-        }
-    }
-
-    /**
-     * Extract direct playback stream URL using play-dl (JS-based)
-     * @param {string} videoId 
-     * @returns {Promise<string>}
-     */
-    async extractAudioStream(videoId) {
-        const startTime = Date.now();
-        try {
-            logger.info('Extracting stream via play-dl', { videoId });
-
-            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-
-            // play-dl.stream() gives us a stream object which often contains the URL
-            // or we can use video_info
-            const info = await play.video_info(videoUrl);
-            const stream = await play.stream_from_info(info, { quality: 2 }); // quality 2 is often bestaudio
-
-            if (stream && stream.url) {
-                logger.info('play-dl stream extracted', { videoId, execTime: Date.now() - startTime });
-                return stream.url;
-            }
-
-            throw new Error('No stream URL found in play-dl output');
-        } catch (error) {
-            logger.warn('play-dl extraction failed, falling back to yt-dlp', { videoId, error: error.message });
-
-            // Fallback to yt-dlp if possible
-            return this.extractAudioStreamYtDlp(videoId);
         }
     }
 
