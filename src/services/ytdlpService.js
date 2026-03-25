@@ -57,7 +57,9 @@ class YtDlpService {
     spawnStream(videoId) {
         const url = `https://www.youtube.com/watch?v=${videoId}`;
         const args = [
-            '-f', 'bestaudio[ext=m4a]/bestaudio/best',
+            '-f', 'bestaudio',
+            '--extract-audio',
+            '--audio-format', 'mp3',
             '-o', '-', // Output to stdout
             '--no-warnings',
             '--no-check-certificates',

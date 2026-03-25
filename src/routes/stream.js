@@ -49,8 +49,8 @@ router.get('/proxy', async (req, res) => {
 
         const child = ytdlpService.spawnStream(id);
 
-        // Set correct Content-Type for m4a streams
-        res.setHeader('Content-Type', 'audio/mp4');
+        // Set correct Content-Type for MP3 streams
+        res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Transfer-Encoding', 'chunked');
 
