@@ -45,32 +45,52 @@ router.get('/proxy', async (req, res) => {
         const { id } = req.query;
         if (!id) return res.status(400).send("ID required");
 
-        logger.info('Proxying stream requested (fast raw)', { id });
+        logger.info('Proxying stream requested (range-aware)', { id });
 
-        const child = ytdlpService.spawnRawStream(id);
+        const streamInfo = await ytdlpService.getStreamInfo(id);
+        const { url: youtubeUrl, size: totalSize } = streamInfo;
 
+        const headers = {
+            'User-Agent': req.get('User-Agent') || 'Mozilla/5.0'
+        };
+
+        if (req.headers.range) {
+            headers['Range'] = req.headers.range;
+            logger.info('Forwarding range request', { id, range: req.headers.range });
+        }
+
+        // Use native fetch (Node 20) to relay the request
+        const response = await fetch(youtubeUrl, { headers });
+
+        // Forward status and headers from YouTube
+        res.status(response.status);
+
+        // Essential headers for iOS
+        res.setHeader('Accept-Ranges', 'bytes');
         res.setHeader('Content-Type', 'audio/mp4');
-        res.setHeader('Accept-Ranges', 'bytes'); // Tell player we support it (even if we don't for seeking)
 
-        child.stdout.pipe(res);
+        if (response.headers.get('content-range')) {
+            res.setHeader('Content-Range', response.headers.get('content-range'));
+        }
+        if (response.headers.get('content-length')) {
+            res.setHeader('Content-Length', response.headers.get('content-length'));
+        }
 
-        child.on('error', (err) => {
-            logger.error('Stream spawn error', { id, error: err.message });
-            if (!res.headersSent) res.status(500).send("Extraction error");
-        });
+        // Pipe the body
+        const reader = response.body.getReader();
+        const pump = async () => {
+            const { done, value } = await reader.read();
+            if (done) {
+                res.end();
+                return;
+            }
+            res.write(value);
+            return pump();
+        };
 
-        child.stderr.on('data', (data) => {
-            const msg = data.toString();
-            if (msg.includes('ERROR')) logger.error('yt-dlp error', { id, msg });
-        });
-
-        child.on('close', (code) => {
-            if (code !== 0) logger.warn('yt-dlp closed with code', { id, code });
+        pump().catch(err => {
+            logger.error('Stream pump error', { id, error: err.message });
             res.end();
-        });
-
-        req.on('close', () => {
-            child.kill('SIGTERM');
         });
 
     } catch (error) {

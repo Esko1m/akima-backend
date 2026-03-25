@@ -82,27 +82,49 @@ class YtDlpService {
     }
 
     /**
-     * Spawns a yt-dlp process to stream the raw m4a data directly.
-     * Fastest method, avoids transcoding overhead.
+     * Replaces all proxy logic with a single robust info extractor.
+     * Returns the direct stream URL and total file size.
      */
-    spawnRawStream(videoId) {
+    async getStreamInfo(videoId) {
         const url = `https://www.youtube.com/watch?v=${videoId}`;
         const args = [
             '-f', 'bestaudio[ext=m4a]/bestaudio/best',
-            '-o', '-', // Output to stdout
+            '--get-url',
+            '--get-filename',
+            '--print', 'filesize',
             '--no-playlist',
-            '--no-warnings',
-            '--no-check-certificates',
-            '--rm-cache-dir',
-            url
+            '--no-warnings'
         ];
 
         if (require('fs').existsSync(this.cookiesPath)) {
             args.push('--cookies', this.cookiesPath);
         }
 
-        const { spawn } = require('child_process');
-        return spawn(this.binPath, args);
+        args.push(url);
+
+        return new Promise((resolve, reject) => {
+            const { execFile } = require('child_process');
+            execFile(this.binPath, args, (error, stdout, stderr) => {
+                if (error) {
+                    logger.error('yt-dlp info extraction failed', { videoId, error: stderr || error.message });
+                    return reject(new Error('Stream extraction failed'));
+                }
+
+                const lines = stdout.trim().split('\n');
+                // Expected output:
+                // [stream_url]
+                // [filename]
+                // [filesize]
+                const streamUrl = lines[0];
+                const size = parseInt(lines[lines.length - 1]);
+
+                if (!streamUrl || isNaN(size)) {
+                    return reject(new Error('Incomplete stream info'));
+                }
+
+                resolve({ url: streamUrl, size });
+            });
+        });
     }
 
     /**
