@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const z = require('zod');
-const ytdlpService = require('../services/ytdlpService');
+const songModel = require('../models/songModel');
 const cacheService = require('../services/cacheService');
 const logger = require('../utils/logger');
 
@@ -25,28 +25,29 @@ router.get('/', async (req, res) => {
             return res.json(cachedResults);
         }
 
-        // Attempt operation via YT-DLP
-        const limit = 10;
-        const results = await ytdlpService.searchVideos(query, limit);
+        // Search via Telegram song model
+        const results = songModel.search(query);
 
-        const response = { results };
+        // Map to format frontend expects
+        const mappedResults = results.map(s => ({
+            title: s.title,
+            artist: s.artist,
+            videoId: s.id, // e.g., "tg_123"
+            thumbnail: s.thumbnail,
+            duration: s.duration
+        }));
 
-        // Save strictly to cache avoiding repeat queries
-        // Extended TTL (e.g., 2 hours for search results since titles/ids don't change often)
-        cacheService.set(cacheKey, response, 7200);
-        logger.info('Search cache miss, stored in cache', { query });
+        // Cache the results (2 hours)
+        cacheService.set(cacheKey, mappedResults, 7200);
+        logger.info('Search cache miss, stored in cache', { query, count: mappedResults.length });
 
-        return res.json(response);
+        return res.json(mappedResults);
     } catch (error) {
         if (error instanceof z.ZodError) {
             return res.status(400).json({ error: error.errors.map(e => e.message).join(", ") });
         }
 
-        // Check if error is specifically from yt-dlp service
-        if (error.message.includes('Search failed to execute')) {
-            return res.status(502).json({ error: 'Failed to fetch search results from source.' });
-        }
-
+        logger.error('Search API Error', { error: error.message });
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
