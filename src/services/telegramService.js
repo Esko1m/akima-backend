@@ -93,20 +93,31 @@ class TelegramService {
             }
 
             const songs = data.result
-                .filter(u => (u.channel_post && u.channel_post.audio) || (u.message && u.message.audio))
                 .map(u => {
                     const msg = u.channel_post || u.message;
-                    const audio = msg.audio;
+                    if (!msg) return null;
+
+                    const audio = msg.audio || (msg.document && msg.document.mime_type?.startsWith('audio/') ? msg.document : null);
+                    if (!audio) {
+                        logger.info('Skipping message: no audio/document found', { msg_id: msg.message_id });
+                        return null;
+                    }
+
                     return {
                         id: `tg_${msg.message_id}`,
                         title: audio.title || audio.file_name || 'Unknown Title',
                         artist: audio.performer || 'Unknown Artist',
                         message_id: msg.message_id,
                         file_id: audio.file_id,
-                        duration: audio.duration,
+                        duration: audio.duration || 0,
                         thumbnail: audio.thumb?.file_id || null
                     };
-                });
+                })
+                .filter(s => s !== null);
+
+            if (songs.length === 0 && data.result.length > 0) {
+                logger.info('Updates found but no audio songs extracted', { raw: JSON.stringify(data.result).substring(0, 500) });
+            }
 
             const addedCount = await songModel.updateSongs(songs);
             if (addedCount > 0) {
