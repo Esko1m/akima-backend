@@ -53,16 +53,11 @@ router.get('/', async (req, res) => {
         // Cache the result
         cacheService.set(cacheKey, streamUrl, STREAM_CACHE_TTL);
 
-        // Optional: Return JSON if ?json=true is requested (for testing/frontend mapping)
-        if (req.query.json === 'true') {
-            return res.json({
-                url: streamUrl,
-                expiresIn: STREAM_CACHE_TTL
-            });
-        }
-
-        // Redirect directly to the stream URL for native playback
-        res.redirect(streamUrl);
+        // Return JSON instead of redirecting because AVPlayer fails to follow cross-domain redirects for audio reliably
+        return res.json({
+            url: streamUrl,
+            expiresIn: STREAM_CACHE_TTL
+        });
 
     } catch (error) {
         if (error instanceof z.ZodError) {
