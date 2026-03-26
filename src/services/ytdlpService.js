@@ -15,8 +15,9 @@ class YtDlpService {
         // Path to yt-dlp binary. 
         // In Docker (Docker-bullseye-slim), it will be in /usr/local/bin/yt-dlp
         // In Windows local dev, it's in the root.
-        this.binPath = os.platform() === 'win32'
-            ? path.resolve(__dirname, '../../yt-dlp.exe')
+        const localWinPath = path.resolve(__dirname, '../../yt-dlp.exe');
+        this.binPath = require('fs').existsSync(localWinPath)
+            ? localWinPath
             : 'yt-dlp'; // Assumes global availability in Linux/Docker
 
         // Path to cookies file if it exists
