@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
         }
 
         // Search via Telegram song model
-        const results = songModel.search(query);
+        const results = await songModel.search(query);
 
         // Map to format frontend expects
         const mappedResults = results.map(s => ({

@@ -1,70 +1,99 @@
-const fs = require('fs');
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const logger = require('../utils/logger');
 
-const DB_PATH = path.resolve(__dirname, '../../data/songs.json');
+// Supabase Configuration
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    logger.error('Supabase credentials missing in environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 class SongModel {
     constructor() {
-        this.songs = [];
-        this.load();
+        this.tableName = 'songs';
     }
 
-    load() {
+    async getAll(page = 1, limit = 20) {
         try {
-            if (!fs.existsSync(path.dirname(DB_PATH))) {
-                fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-            }
-            if (fs.existsSync(DB_PATH)) {
-                const data = fs.readFileSync(DB_PATH, 'utf8');
-                this.songs = JSON.parse(data);
-            }
+            const start = (page - 1) * limit;
+            const { data, error } = await supabase
+                .from(this.tableName)
+                .select('*')
+                .range(start, start + limit - 1)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
         } catch (error) {
-            logger.error('Failed to load songs from DB', { error: error.message });
-            this.songs = [];
+            logger.error('Supabase getAll error', { error: error.message });
+            return [];
         }
     }
 
-    save() {
+    async search(query) {
         try {
-            fs.writeFileSync(DB_PATH, JSON.stringify(this.songs, null, 2), 'utf8');
+            const { data, error } = await supabase
+                .from(this.tableName)
+                .select('*')
+                .or(`title.ilike.%${query}%,artist.ilike.%${query}%`)
+                .limit(20);
+
+            if (error) throw error;
+            return data || [];
         } catch (error) {
-            logger.error('Failed to save songs to DB', { error: error.message });
+            logger.error('Supabase search error', { error: error.message });
+            return [];
         }
     }
 
-    getAll(page = 1, limit = 20) {
-        const start = (page - 1) * limit;
-        return this.songs.slice(start, start + limit);
+    async findById(id) {
+        try {
+            const { data, error } = await supabase
+                .from(this.tableName)
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            logger.error('Supabase findById error', { id, error: error.message });
+            return null;
+        }
     }
 
-    search(query) {
-        const q = query.toLowerCase();
-        return this.songs.filter(s =>
-            s.title.toLowerCase().includes(q) ||
-            s.artist.toLowerCase().includes(q)
-        );
-    }
+    async add(song) {
+        try {
+            const { data, error } = await supabase
+                .from(this.tableName)
+                .upsert([song], { onConflict: 'message_id' });
 
-    findById(id) {
-        return this.songs.find(s => s.id === id);
-    }
-
-    add(song) {
-        if (!this.songs.find(s => s.message_id === song.message_id)) {
-            this.songs.push(song);
-            this.save();
+            if (error) throw error;
             return true;
+        } catch (error) {
+            logger.error('Supabase add error', { error: error.message });
+            return false;
         }
-        return false;
     }
 
-    updateSongs(newSongs) {
-        let addedCount = 0;
-        newSongs.forEach(song => {
-            if (this.add(song)) addedCount++;
-        });
-        return addedCount;
+    async updateSongs(newSongs) {
+        try {
+            if (newSongs.length === 0) return 0;
+
+            // Upsert all songs at once for efficiency
+            const { data, error } = await supabase
+                .from(this.tableName)
+                .upsert(newSongs, { onConflict: 'message_id' });
+
+            if (error) throw error;
+            return newSongs.length;
+        } catch (error) {
+            logger.error('Supabase updateSongs error', { error: error.message });
+            return 0;
+        }
     }
 }
 

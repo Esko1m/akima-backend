@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
 
         // Handle Telegram IDs
         if (videoId.startsWith('tg_')) {
-            const song = songModel.findById(videoId);
+            const song = await songModel.findById(videoId);
             if (!song) {
                 return res.status(404).json({ error: 'Telegram song not found' });
             }

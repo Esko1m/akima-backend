@@ -97,7 +97,7 @@ class TelegramService {
                     };
                 });
 
-            const addedCount = songModel.updateSongs(songs);
+            const addedCount = await songModel.updateSongs(songs);
             if (addedCount > 0) {
                 logger.info(`Synced ${addedCount} new songs from Telegram`);
             }
@@ -106,14 +106,6 @@ class TelegramService {
             logger.error('Telegram sync failed', { error: error.message });
             return 0;
         }
-    }
-
-    /**
-     * Start background polling for new songs
-     */
-    startPolling() {
-        logger.info('Starting Telegram polling for new songs...');
-        setInterval(() => this.syncFromUpdates(), 60000); // Poll every minute
     }
 }
 

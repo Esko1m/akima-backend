@@ -5,11 +5,11 @@ const telegramService = require('../services/telegramService');
 const logger = require('../utils/logger');
 
 // GET /songs - List all indexed songs
-router.get('/songs', (req, res) => {
+router.get('/songs', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
-        const songs = songModel.getAll(page, limit);
+        const songs = await songModel.getAll(page, limit);
         res.json({ results: songs });
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
@@ -17,11 +17,11 @@ router.get('/songs', (req, res) => {
 });
 
 // GET /search - Search songs by title or artist
-router.get('/search', (req, res) => {
+router.get('/search', async (req, res) => {
     try {
         const query = req.query.q;
         if (!query) return res.status(400).json({ error: 'Query is required' });
-        const results = songModel.search(query);
+        const results = await songModel.search(query);
         res.json({ results });
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
@@ -34,7 +34,7 @@ router.get('/stream', async (req, res) => {
         const id = req.query.id;
         if (!id) return res.status(400).json({ error: 'ID is required' });
 
-        const song = songModel.findById(id);
+        const song = await songModel.findById(id);
         if (!song) return res.status(404).json({ error: 'Song not found' });
 
         const url = await telegramService.getDirectUrl(song.file_id);

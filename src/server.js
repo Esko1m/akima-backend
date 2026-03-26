@@ -65,7 +65,4 @@ app.use((err, req, res, next) => {
 // Start listening (Explicitly on 0.0.0.0 to allow network access)
 app.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server initialized successfully on http://0.0.0.0:${PORT}`);
-
-    // Start Telegram Polling
-    telegramService.startPolling();
 });
