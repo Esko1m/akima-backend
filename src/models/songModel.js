@@ -17,6 +17,7 @@ const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseKey || '') : nu
 class SongModel {
     constructor() {
         this.tableName = 'songs';
+        this.supabase = supabase;
         this.disabled = !supabase;
     }
 

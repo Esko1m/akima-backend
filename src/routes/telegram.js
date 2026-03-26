@@ -61,22 +61,52 @@ router.all('/sync', async (req, res) => {
     }
 });
 
-// GET /status - Check bot connection
+// GET /status - Check bot and database connection
 router.get('/status', async (req, res) => {
     try {
-        const data = await telegramService._get(`${telegramService.apiUrl}/getMe`);
-        logger.info('Bot Status Check', { success: data.ok, bot: data.result?.username });
+        // 1. Check Telegram
+        const tgData = await telegramService._get(`${telegramService.apiUrl}/getMe`);
+
+        // 2. Check Supabase
+        let sbStatus = 'disconnected';
+        let songCount = 0;
+        if (!songModel.disabled) {
+            const { count, error } = await songModel.supabase
+                .from(songModel.tableName)
+                .select('*', { count: 'exact', head: true });
+            if (!error) {
+                sbStatus = 'connected';
+                songCount = count || 0;
+            } else {
+                sbStatus = `error: ${error.message}`;
+            }
+        }
+
+        logger.info('Status Check', {
+            tg_ok: tgData.ok,
+            sb_status: sbStatus,
+            songs_in_db: songCount
+        });
+
         res.json({
-            success: data.ok,
-            bot: data.result ? {
-                username: data.result.username,
-                can_read_messages: data.result.can_read_group_messages,
-                supports_inline: data.result.supports_inline_queries
-            } : null,
-            channel_id: telegramService.channelId
+            success: tgData.ok && sbStatus === 'connected',
+            telegram: {
+                active: tgData.ok,
+                bot: tgData.result?.username
+            },
+            supabase: {
+                status: sbStatus,
+                total_songs: songCount
+            },
+            env: {
+                has_bot_token: !!process.env.TELEGRAM_BOT_TOKEN,
+                has_channel_id: !!process.env.TELEGRAM_CHANNEL_ID,
+                has_supabase_url: !!process.env.SUPABASE_URL || !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+                has_supabase_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY || !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+            }
         });
     } catch (error) {
-        logger.error('Bot Status Check Failed', { error: error.message });
+        logger.error('Status Check Failed', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
