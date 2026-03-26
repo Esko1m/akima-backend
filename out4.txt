@@ -1,0 +1,29 @@
+[2026-03-26T17:22:31.464Z] [ERROR] Supabase credentials missing in environment variables. Model will operate in disabled mode.
+node:internal/modules/cjs/loader:1450
+  throw err;
+  ^
+
+Error: Cannot find module 'yt-search'
+Require stack:
+- C:\Users\Administrator\Documents\akima-backend\src\services\ytdlpService.js
+- C:\Users\Administrator\Documents\akima-backend\src\routes\stream.js
+- C:\Users\Administrator\Documents\akima-backend\src\server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1447:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1058:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1063:22)
+    at Module._load (node:internal/modules/cjs/loader:1233:25)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+    at Module.require (node:internal/modules/cjs/loader:1547:12)
+    at require (node:internal/modules/helpers:152:16)
+    at Object.<anonymous> (C:\Users\Administrator\Documents\akima-backend\src\services\ytdlpService.js:1:18)
+    at Module._compile (node:internal/modules/cjs/loader:1803:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\Administrator\\Documents\\akima-backend\\src\\services\\ytdlpService.js',
+    'C:\\Users\\Administrator\\Documents\\akima-backend\\src\\routes\\stream.js',
+    'C:\\Users\\Administrator\\Documents\\akima-backend\\src\\server.js'
+  ]
+}
+
+Node.js v25.4.0

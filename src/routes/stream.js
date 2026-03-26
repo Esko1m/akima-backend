@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const z = require('zod');
 const ytdlpService = require('../services/ytdlpService');
+const pipedApi = require('../services/pipedApi');
 const telegramService = require('../services/telegramService');
 const songModel = require('../models/songModel');
 const cacheService = require('../services/cacheService');
@@ -46,8 +47,15 @@ router.get('/', async (req, res) => {
             }
             streamUrl = await telegramService.getDirectUrl(song.file_id);
         } else {
-            // Extract direct URL using yt-dlp (Service handles retry)
-            streamUrl = await ytdlpService.extractAudioStream(videoId);
+            // Priority 1: Extract direct URL using Piped API (Very fast logic from Harmony)
+            try {
+                const streamInfo = await pipedApi.getStream(videoId);
+                streamUrl = streamInfo.url;
+            } catch (pipedError) {
+                logger.warn('Piped API instances failed, falling back to robust yt-dlp', { videoId, error: pipedError.message });
+                // Priority 2: yt-dlp binary (Slow but bypasses almost all blocks)
+                streamUrl = await ytdlpService.extractAudioStream(videoId);
+            }
         }
 
         // Cache the result

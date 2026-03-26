@@ -25,23 +25,37 @@ router.get('/', async (req, res) => {
             return res.json(cachedResults);
         }
 
-        // Search via Telegram song model
-        const results = await songModel.search(query);
-
-        // Map to format frontend expects
-        const mappedResults = results.map(s => ({
+        // First search Telegram library (fast local metadata)
+        const tgResults = await songModel.search(query);
+        const mappedTgResults = tgResults.map(s => ({
             title: s.title,
             artist: s.artist,
             videoId: s.id, // e.g., "tg_123"
             thumbnail: s.thumbnail,
-            duration: s.duration
+            duration: s.duration,
+            source: 'telegram'
         }));
 
-        // Cache the results (2 hours)
-        cacheService.set(cacheKey, mappedResults, 7200);
-        logger.info('Search cache miss, stored in cache', { query, count: mappedResults.length });
+        // Fetch from YouTube Music
+        const ytMusicApi = require('../services/youtubeMusicApi');
+        let ytResults = [];
+        try {
+            ytResults = await ytMusicApi.search(query);
+            ytResults = ytResults.map(r => ({
+                ...r,
+                source: 'youtube_music'
+            }));
+        } catch (e) {
+            logger.warn('YouTube search API failed', { error: e.message });
+        }
 
-        return res.json(mappedResults);
+        const combinedResults = [...mappedTgResults, ...ytResults];
+
+        // Cache the results (2 hours)
+        cacheService.set(cacheKey, combinedResults, 7200);
+        logger.info('Search cache miss, stored in cache', { query, count: combinedResults.length });
+
+        return res.json(combinedResults);
     } catch (error) {
         if (error instanceof z.ZodError) {
             return res.status(400).json({ error: error.errors.map(e => e.message).join(", ") });

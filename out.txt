@@ -1,0 +1,27 @@
+=== Testing YouTube Music Search ===
+Found 14 results.
+[
+  {
+    videoId: 'dmslZ4ZB13E',
+    title: 'Eutow',
+    artist: 'Autechre',
+    thumbnail: 'https://lh3.googleusercontent.com/BgwZlVeuKa7JE8SUF1Yh4T2hzJRuxxhL810-8gVkHSj8gDHqcp0a5a5I8Z3BFCgD0IK0YXqPldoYusO3=w120-h120-l90-rj',
+    duration: 256
+  },
+  {
+    videoId: 'oIJoF-RjLJ4',
+    title: 'acdwn2',
+    artist: 'Autechre',
+    thumbnail: 'https://lh3.googleusercontent.com/PSDKtg5dvHMhNq2aaOxdcUkLQSpBxnZpbN-dnZeK46M5y5q4fubV8KeZ7W3lkaPOcBKlmiGwgoqOVOwc=w120-h120-l90-rj',
+    duration: 713
+  }
+]
+
+=== Testing Piped API Stream for dmslZ4ZB13E ===
+[2026-03-26T11:25:29.195Z] [WARN] Piped instance https://pipedapi.kavin.rocks failed: 403
+Test failed: SyntaxError: Unexpected token 'S', "Service ha"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at IncomingMessage.<anonymous> (C:\Users\Administrator\Documents\akima-backend\src\services\pipedApi.js:37:47)
+    at IncomingMessage.emit (node:events:520:22)
+    at endReadableNT (node:internal/streams/readable:1729:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
