@@ -58,7 +58,8 @@ router.all('/sync', async (req, res) => {
         res.json({ success: true, addedCount });
     } catch (error) {
         res.status(500).json({ error: error.message });
-    });
+    }
+});
 
 // GET /status - Check bot connection
 router.get('/status', async (req, res) => {
