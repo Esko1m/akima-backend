@@ -58,6 +58,25 @@ router.all('/sync', async (req, res) => {
         res.json({ success: true, addedCount });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    });
+
+// GET /status - Check bot connection
+router.get('/status', async (req, res) => {
+    try {
+        const data = await telegramService._get(`${telegramService.apiUrl}/getMe`);
+        logger.info('Bot Status Check', { success: data.ok, bot: data.result?.username });
+        res.json({
+            success: data.ok,
+            bot: data.result ? {
+                username: data.result.username,
+                can_read_messages: data.result.can_read_group_messages,
+                supports_inline: data.result.supports_inline_queries
+            } : null,
+            channel_id: telegramService.channelId
+        });
+    } catch (error) {
+        logger.error('Bot Status Check Failed', { error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
 

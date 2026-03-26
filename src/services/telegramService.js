@@ -84,6 +84,14 @@ class TelegramService {
 
             if (!data.ok) throw new Error(data.description);
 
+            logger.info('Received updates from Telegram', { count: data.result?.length || 0 });
+
+            if (data.result?.length > 0) {
+                // Log the types of updates received to help debug
+                const types = data.result.map(u => u.channel_post ? 'channel_post' : u.message ? 'message' : 'other');
+                logger.info('Update types summary', { types: [...new Set(types)] });
+            }
+
             const songs = data.result
                 .filter(u => (u.channel_post && u.channel_post.audio) || (u.message && u.message.audio))
                 .map(u => {
