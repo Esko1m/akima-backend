@@ -48,8 +48,11 @@ router.get('/stream', async (req, res) => {
     }
 });
 
-// POST /sync - Manual trigger for sync
-router.post('/sync', async (req, res) => {
+// GET/POST /sync - Manual trigger for sync
+router.all('/sync', async (req, res) => {
+    if (req.method !== 'GET' && req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
     try {
         const addedCount = await telegramService.syncFromUpdates();
         res.json({ success: true, addedCount });

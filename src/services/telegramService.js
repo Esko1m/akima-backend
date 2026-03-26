@@ -20,6 +20,9 @@ class TelegramService {
     }
 
     async _get(url) {
+        if (!url || url.includes('botundefined') || url.includes('botnull')) {
+            throw new Error('Telegram Bot Token is missing or malformed');
+        }
         return new Promise((resolve, reject) => {
             const options = {
                 headers: { 'User-Agent': 'Mozilla/5.0' },

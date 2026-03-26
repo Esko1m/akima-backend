@@ -6,17 +6,20 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    logger.error('Supabase credentials missing in environment variables');
+    logger.error('Supabase credentials missing in environment variables. Model will operate in disabled mode.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Only create client if URL is present to prevent top-level crash
+const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseKey || '') : null;
 
 class SongModel {
     constructor() {
         this.tableName = 'songs';
+        this.disabled = !supabase;
     }
 
     async getAll(page = 1, limit = 20) {
+        if (this.disabled) return [];
         try {
             const start = (page - 1) * limit;
             const { data, error } = await supabase
@@ -34,6 +37,7 @@ class SongModel {
     }
 
     async search(query) {
+        if (this.disabled) return [];
         try {
             const { data, error } = await supabase
                 .from(this.tableName)
@@ -50,6 +54,7 @@ class SongModel {
     }
 
     async findById(id) {
+        if (this.disabled) return null;
         try {
             const { data, error } = await supabase
                 .from(this.tableName)
@@ -66,6 +71,7 @@ class SongModel {
     }
 
     async add(song) {
+        if (this.disabled) return false;
         try {
             const { data, error } = await supabase
                 .from(this.tableName)
@@ -80,6 +86,7 @@ class SongModel {
     }
 
     async updateSongs(newSongs) {
+        if (this.disabled) return 0;
         try {
             if (newSongs.length === 0) return 0;
 
