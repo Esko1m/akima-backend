@@ -17,10 +17,10 @@ app.use(helmet());
 app.use(cors({ origin: '*' })); // Configure explicitly for prod
 
 // 2. Rate Limiting Middleware (Security & Stability)
-// 100 requests per IP per 15 minutes
+// 20 requests per IP per minute
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 100,
+    windowMs: 1 * 60 * 1000,
+    limit: 20,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     message: { error: 'Too many requests from this IP, please try again later.' }

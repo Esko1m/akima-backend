@@ -154,43 +154,60 @@ class YtDlpService {
     /**
      * Extract direct playback stream URL using the REAL yt-dlp binary.
      * This is the most robust method and bypasses "Sign in to confirm you're not a bot".
+     * STRICT REQUIREMENT: -f bestaudio -g --no-playlist --quiet
      */
-    async extractAudioStream(videoId) {
+    async extractAudioStream(videoId, attempt = 1) {
         const startTime = Date.now();
         const url = `https://www.youtube.com/watch?v=${videoId}`;
 
-        // Build arguments for yt-dlp
-        // -f bestaudio[ext=m4a] ensures we get a format compatible with mobile players
+        // Build arguments for yt-dlp according to strict requirements
         const args = [
-            '-f', 'bestaudio[ext=m4a]/bestaudio/best',
+            '-f', attempt === 3 ? 'bestaudio/best' : 'bestaudio',
             '-g', // Just get the URL
+            '--no-playlist',
+            '--quiet',
             '--no-warnings',
             '--no-check-certificates',
             '--rm-cache-dir',
             url
         ];
 
-        // Add cookies if the file exists (VITAL for bypassing bot detection)
+        // Use cookies ONLY on the first attempt if they exist. 
+        // If it fails (due to bad cookies or format mismatch), we retry WITHOUT them.
         const fs = require('fs');
-        if (fs.existsSync(this.cookiesPath)) {
+        let usingCookies = false;
+        if (attempt === 1 && fs.existsSync(this.cookiesPath)) {
+            usingCookies = true;
             args.push('--cookies', this.cookiesPath);
-            logger.info('Using yt-cookies.txt for extraction', { videoId });
         }
 
+        logger.info('Executing yt-dlp', { videoId, attempt, usingCookies });
+
         try {
-            const { stdout } = await execFileAsync(this.binPath, args);
+            const { stdout, stderr } = await execFileAsync(this.binPath, args);
+            if (stderr) logger.warn('yt-dlp stderr', { stderr, videoId });
+
             const streamUrl = (stdout || '').split('\n')[0].trim();
 
             if (streamUrl && streamUrl.startsWith('http')) {
                 const execTime = Date.now() - startTime;
-                logger.info('yt-dlp extraction succeeded', { videoId, execTime });
+                logger.info('yt-dlp extraction succeeded', { videoId, execTime, attempt, usingCookies });
                 return streamUrl;
             }
             throw new Error('yt-dlp returned no valid URL');
         } catch (error) {
             const execTime = Date.now() - startTime;
-            logger.error('yt-dlp extraction failed', { videoId, execTime, error: error.message });
-            throw new Error(`Stream extraction failed: ${error.message}`);
+            logger.warn('yt-dlp extraction failed', { videoId, execTime, error: error.message, attempt, usingCookies });
+
+            if (attempt === 1 && usingCookies) {
+                logger.info('Retrying extraction WITHOUT cookies...', { videoId });
+                return this.extractAudioStream(videoId, 2);
+            }
+            if (attempt === 2 || (attempt === 1 && !usingCookies)) {
+                logger.info('Retrying extraction with alternative format fallback...', { videoId });
+                return this.extractAudioStream(videoId, 3);
+            }
+            throw new Error(`Stream extraction failed after ${attempt} attempts: ${error.message}`);
         }
     }
 

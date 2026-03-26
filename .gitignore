@@ -4,3 +4,4 @@ node_modules/
 yt-dlp
 *.log
 .DS_Store
+yt-cookies.txt

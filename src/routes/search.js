@@ -29,12 +29,14 @@ router.get('/', async (req, res) => {
         const limit = 10;
         const results = await ytdlpService.searchVideos(query, limit);
 
+        const response = { results };
+
         // Save strictly to cache avoiding repeat queries
         // Extended TTL (e.g., 2 hours for search results since titles/ids don't change often)
-        cacheService.set(cacheKey, results, 7200);
+        cacheService.set(cacheKey, response, 7200);
         logger.info('Search cache miss, stored in cache', { query });
 
-        return res.json(results);
+        return res.json(response);
     } catch (error) {
         if (error instanceof z.ZodError) {
             return res.status(400).json({ error: error.errors.map(e => e.message).join(", ") });
