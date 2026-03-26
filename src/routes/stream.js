@@ -12,7 +12,7 @@ const STREAM_CACHE_TTL = parseInt(process.env.STREAM_CACHE_TTL) || 1200; // Defa
 
 // Validator ensuring ID conforms to video ID or Telegram ID formatting
 const streamSchema = z.object({
-    videoId: z.string().min(3, "ID too short").max(50, "ID too long").regex(/^[a-zA-Z0-9_-]+$/, "Invalid ID format"),
+    id: z.string().min(3, "ID too short").max(100, "ID too long"), // Allow longer and more characters for Telegram
 });
 
 router.get('/', async (req, res) => {
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     try {
         // Validate request parameter
         const validated = streamSchema.parse(req.query);
-        videoId = validated.videoId;
+        videoId = validated.id;
 
         // Check Cache
         const cacheKey = `stream:${videoId}`;
