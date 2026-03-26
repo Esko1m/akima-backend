@@ -4,8 +4,8 @@
   "description": "High-performance backend API for music streaming utilizing yt-dlp",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node src/server.js"
+    "start": "node --env-file=.env src/server.js",
+    "dev": "node --env-file=.env src/server.js"
   },
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",

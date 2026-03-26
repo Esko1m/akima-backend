@@ -8,6 +8,10 @@ const logger = require('./utils/logger');
 // Load Routes
 const searchRoute = require('./routes/search');
 const streamRoute = require('./routes/stream');
+const telegramRoute = require('./routes/telegram');
+
+// Services
+const telegramService = require('./services/telegramService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +44,7 @@ app.use(morgan('short', {
 // Route Middlewares
 app.use('/search', searchRoute);
 app.use('/stream', streamRoute);
+app.use('/telegram', telegramRoute);
 
 // Health check / Base Endpoint
 app.get('/', (req, res) => {
@@ -60,4 +65,7 @@ app.use((err, req, res, next) => {
 // Start listening (Explicitly on 0.0.0.0 to allow network access)
 app.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server initialized successfully on http://0.0.0.0:${PORT}`);
+
+    // Start Telegram Polling
+    telegramService.startPolling();
 });
