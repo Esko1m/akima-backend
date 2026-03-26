@@ -53,10 +53,16 @@ router.get('/', async (req, res) => {
         // Cache the result
         cacheService.set(cacheKey, streamUrl, STREAM_CACHE_TTL);
 
-        return res.json({
-            url: streamUrl,
-            expiresIn: STREAM_CACHE_TTL
-        });
+        // Optional: Return JSON if ?json=true is requested (for testing/frontend mapping)
+        if (req.query.json === 'true') {
+            return res.json({
+                url: streamUrl,
+                expiresIn: STREAM_CACHE_TTL
+            });
+        }
+
+        // Redirect directly to the stream URL for native playback
+        res.redirect(streamUrl);
 
     } catch (error) {
         if (error instanceof z.ZodError) {
