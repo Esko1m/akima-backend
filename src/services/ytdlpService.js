@@ -13,6 +13,42 @@ class YtDlpService {
     constructor() {
         this.cookiesPath = path.join(process.cwd(), 'yt-cookies.txt');
         this.ytdlpPath = path.join(process.cwd(), 'yt-dlp.exe');
+        this.agent = null;
+        this._initAgent();
+    }
+
+    _initAgent() {
+        if (fs.existsSync(this.cookiesPath)) {
+            try {
+                const cookiesText = fs.readFileSync(this.cookiesPath, 'utf8');
+                const cookies = this._parseCookies(cookiesText);
+                if (cookies.length > 0) {
+                    this.agent = ytdl.createAgent(cookies);
+                    logger.info(`Initialized ytdl-core agent with ${cookies.length} cookies`);
+                }
+            } catch (e) {
+                logger.error('Failed to initialize ytdl agent from cookies', { error: e.message });
+            }
+        }
+    }
+
+    _parseCookies(text) {
+        return text.split('\n')
+            .filter(line => line.trim() && !line.startsWith('#'))
+            .map(line => {
+                const parts = line.split('\t');
+                if (parts.length < 7) return null;
+                return {
+                    domain: parts[0],
+                    expirationDate: parseInt(parts[4]),
+                    path: parts[1],
+                    name: parts[5],
+                    value: parts[6],
+                    secure: parts[3] === 'TRUE',
+                    httpOnly: false // Netscape format doesn't explicitly track this
+                };
+            })
+            .filter(Boolean);
     }
 
     /**
@@ -59,9 +95,10 @@ class YtDlpService {
         }
 
         // 2. Fallback to @distube/ytdl-core (pure JS, essential for Serverless/Vercel)
-        logger.info('Executing ytdl-core JS extraction fallback', { videoId });
+        logger.info('Executing ytdl-core JS extraction fallback', { videoId, hasAgent: !!this.agent });
         try {
-            const info = await ytdl.getInfo(url);
+            const options = this.agent ? { agent: this.agent } : {};
+            const info = await ytdl.getInfo(url, options);
             const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
 
             // Harmony Music logic: prefer 251 (opus) or 140 (m4a)
