@@ -16,6 +16,8 @@ const streamSchema = z.object({
     id: z.string().min(3, "ID too short").max(100, "ID too long"), // Allow longer and more characters for Telegram
 });
 
+const youtubeMusicApi = require('../services/youtubeMusicApi');
+
 router.get('/', async (req, res) => {
     let videoId = 'unknown';
     try {
@@ -47,14 +49,24 @@ router.get('/', async (req, res) => {
             }
             streamUrl = await telegramService.getDirectUrl(song.file_id);
         } else {
-            // Priority 1: Extract direct URL using Piped API (Very fast logic from Harmony)
+            // Priority 1: InnerTube Player (Same as Harmony)
             try {
-                const streamInfo = await pipedApi.getStream(videoId);
-                streamUrl = streamInfo.url;
-            } catch (pipedError) {
-                logger.warn('Piped API instances failed, falling back to robust yt-dlp', { videoId, error: pipedError.message });
-                // Priority 2: yt-dlp binary (Slow but bypasses almost all blocks)
-                streamUrl = await ytdlpService.extractAudioStream(videoId);
+                logger.info('Trying InnerTube Player extraction', { videoId });
+                const playerInfo = await youtubeMusicApi.getPlayer(videoId);
+                streamUrl = playerInfo.url;
+            } catch (innerTubeError) {
+                logger.warn('InnerTube Player failed, trying Piped', { videoId, error: innerTubeError.message });
+
+                // Priority 2: Piped API (Very fast logic from Harmony)
+                try {
+                    const streamInfo = await pipedApi.getStream(videoId);
+                    streamUrl = streamInfo.url;
+                } catch (pipedError) {
+                    logger.warn('Piped API instances failed, falling back to robust yt-dlp', { videoId, error: pipedError.message });
+
+                    // Priority 3: yt-dlp binary or ytdl-core JS
+                    streamUrl = await ytdlpService.extractAudioStream(videoId);
+                }
             }
         }
 

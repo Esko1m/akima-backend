@@ -98,22 +98,40 @@ class YtDlpService {
         logger.info('Executing ytdl-core JS extraction fallback', { videoId, hasAgent: !!this.agent });
         try {
             const options = this.agent ? { agent: this.agent } : {};
+            // Set a user agent that looks more like a browser
+            options.requestOptions = {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+            };
+
             const info = await ytdl.getInfo(url, options);
+            if (!info || !info.formats) {
+                throw new Error('ytdl-core info or formats missing');
+            }
+
             const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+            logger.info('Formats retrieved', { videoId, total: info.formats.length, audioOnly: audioFormats.length });
 
             // Harmony Music logic: prefer 251 (opus) or 140 (m4a)
             let format = audioFormats.find(f => f.itag === 251) ||
                 audioFormats.find(f => f.itag === 140);
 
-            if (!format) format = audioFormats.find(f => f.container === 'mp4' && f.audioBitrate >= 128);
+            if (!format) {
+                // Expanded fallback: look for any opus or mp4a
+                format = audioFormats.find(f => f.codec?.includes('opus')) ||
+                    audioFormats.find(f => f.codec?.includes('mp4a'));
+            }
+
+            if (!format) format = audioFormats.find(f => f.container === 'mp4');
             if (!format) format = audioFormats[0];
 
             if (format && format.url) {
                 const execTime = Date.now() - startTime;
-                logger.info('ytdl-core extraction succeeded', { videoId, execTime, itag: format.itag });
+                logger.info('ytdl-core extraction succeeded', { videoId, execTime, itag: format.itag, codec: format.codec });
                 return format.url;
             }
-            throw new Error('ytdl-core returned no valid audio formats');
+            throw new Error(`No valid audio formats found. Total formats: ${info.formats.length}, Audio-only: ${audioFormats.length}`);
         } catch (error) {
             const execTime = Date.now() - startTime;
             logger.error('Full extraction pipeline failed', { videoId, execTime, error: error.message });
