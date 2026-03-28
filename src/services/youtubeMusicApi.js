@@ -11,12 +11,23 @@ class YouTubeMusicApi {
         this.context = {
             client: {
                 clientName: 'WEB_REMIX',
-                clientVersion: '1.20231214.00.00',
+                clientVersion: this._getDynamicVersion(),
                 hl: 'en',
                 gl: 'US'
             }
         };
         this.cookies = this._loadCookies();
+        this.visitorId = 'CgttN24wcmd5UzNSWSi2lvq2BjIKCgJKUBIEGgAgYQ%3D%3D'; // Default fallback from Harmony
+    }
+
+    _getDynamicVersion() {
+        const date = new Date();
+        return `1.${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}.01.00`;
+    }
+
+    _getSignatureTimestamp() {
+        // Calculate days since 1970-01-01 (standard for YouTube player signature)
+        return Math.floor(Date.now() / (1000 * 60 * 60 * 24)) - 1;
     }
 
     _loadCookies() {
@@ -41,20 +52,30 @@ class YouTubeMusicApi {
 
     async _sendRequest(endpoint, payload) {
         const url = `${YOUTUBE_MUSIC_URL}/${endpoint}?prettyPrint=false`;
-        const data = JSON.stringify({
-            context: this.context,
+
+        // Merge visitor ID and other context items
+        const requestPayload = {
+            context: {
+                ...this.context,
+                user: {
+                    lockedSafetyMode: false
+                }
+            },
             ...payload
-        });
+        };
 
         const headers = {
             'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(data),
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'X-Goog-Visitor-Id': this.visitorId
         };
 
         if (this.cookies) {
             headers['Cookie'] = this.cookies;
         }
+
+        const data = JSON.stringify(requestPayload);
+        headers['Content-Length'] = Buffer.byteLength(data);
 
         return new Promise((resolve, reject) => {
             const req = https.request(url, {
@@ -138,7 +159,7 @@ class YouTubeMusicApi {
                 videoId,
                 playbackContext: {
                     contentPlaybackContext: {
-                        signatureTimestamp: 19700
+                        signatureTimestamp: this._getSignatureTimestamp()
                     }
                 }
             };
@@ -155,13 +176,17 @@ class YouTubeMusicApi {
                 ...(data.streamingData.adaptiveFormats || [])
             ];
 
-            // Filter for audio streams and prioritize 251 (Opus) then 140 (M4A)
+            // Filter for audio streams and prioritize 251 (Opus 160k) then 140 (M4A 128k)
             const audioFormats = formats.filter(f => f.mimeType && f.mimeType.includes('audio/'));
+
+            // Harmony Logic: Prefer 251 (Opus) or 140 (M4A)
             let bestStream = audioFormats.find(f => f.itag === 251) ||
                 audioFormats.find(f => f.itag === 140);
 
             if (!bestStream) {
-                bestStream = audioFormats.find(f => f.mimeType?.includes('audio/mp4')) || audioFormats[0];
+                bestStream = audioFormats.find(f => f.mimeType?.includes('audio/mp4')) ||
+                    audioFormats.find(f => f.mimeType?.includes('audio/mpeg')) ||
+                    audioFormats[0];
             }
 
             if (bestStream && bestStream.url) {
@@ -173,7 +198,8 @@ class YouTubeMusicApi {
                 };
             }
 
-            throw new Error('InnerTube returned restricted formats (signature required)');
+            // Fallback: If URL is missing, it might be signature-protected.
+            throw new Error('InnerTube returned restricted formats (signature/decipher required)');
         } catch (error) {
             logger.error('YouTubeMusicApi getPlayer error:', error);
             throw error;
