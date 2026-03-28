@@ -1,46 +1,26 @@
 const ytSearch = require('yt-search');
 const logger = require('../utils/logger');
 const ytdl = require('@distube/ytdl-core');
+const { exec } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
 /**
  * Service to handle YouTube search and stream extraction.
- * Optimized for Vercel Serverless using a pure Javascript implementation (@distube/ytdl-core).
+ * Optimized for robustness with a binary yt-dlp fallback (for local/Windows) and @distube/ytdl-core (for serverless).
  */
 class YtDlpService {
     constructor() {
+        this.cookiesPath = path.join(process.cwd(), 'yt-cookies.txt');
+        this.ytdlpPath = path.join(process.cwd(), 'yt-dlp.exe');
     }
 
     /**
      * Search for videos using yt-search (JS-based, fast and rarely blocked)
      */
-    getCookiesContent() {
-        if (require('fs').existsSync(this.cookiesPath)) {
-            return require('fs').readFileSync(this.cookiesPath, 'utf8');
-        }
-        return null;
-    }
-
-    getHttpCookies() {
-        const raw = this.getCookiesContent();
-        if (!raw) return null;
-        try {
-            return raw.split('\n')
-                .filter(l => l && !l.startsWith('#'))
-                .map(l => {
-                    const parts = l.split('\t');
-                    if (parts.length < 7) return null;
-                    return `${parts[5]}=${parts[6]}`;
-                })
-                .filter(Boolean)
-                .join('; ');
-        } catch (e) {
-            return null;
-        }
-    }
     async searchVideos(query, limit = 10) {
         const startTime = Date.now();
         try {
-            // First try yt-search (very fast)
             const r = await ytSearch(query);
             if (!r || !r.videos || r.videos.length === 0) throw new Error('yt-search returned no results');
 
@@ -52,59 +32,79 @@ class YtDlpService {
                 duration: video.seconds || 0
             }));
         } catch (error) {
-            logger.warn('yt-search failed, falling back to yt-dlp search', { query, error: error.message });
-            return this.searchVideosYtDlp(query, limit);
+            logger.warn('yt-search failed', { query, error: error.message });
+            return [];
         }
     }
 
     /**
-     * Extract direct playback stream URL using @distube/ytdl-core.
-     * This pure JS method is essential for Vercel/Serverless where .exe binaries cannot execute.
+     * Extract direct playback stream URL.
+     * Tries yt-dlp.exe binary first (most robust), then @distube/ytdl-core JS.
      */
     async extractAudioStream(videoId) {
         const startTime = Date.now();
         const url = `https://www.youtube.com/watch?v=${videoId}`;
 
-        logger.info('Executing ytdl-core JS extraction', { videoId });
+        // 1. Try robust yt-dlp binary if available (ideal for Windows/Local environments)
+        if (fs.existsSync(this.ytdlpPath)) {
+            logger.info('Executing robust yt-dlp binary extraction', { videoId });
+            try {
+                const streamUrl = await this._extractWithBinary(videoId);
+                const execTime = Date.now() - startTime;
+                logger.info('yt-dlp binary extraction succeeded', { videoId, execTime });
+                return streamUrl;
+            } catch (binaryError) {
+                logger.warn('yt-dlp binary failed, falling back to JS extraction', { videoId, error: binaryError.message });
+            }
+        }
 
+        // 2. Fallback to @distube/ytdl-core (pure JS, essential for Serverless/Vercel)
+        logger.info('Executing ytdl-core JS extraction fallback', { videoId });
         try {
             const info = await ytdl.getInfo(url);
             const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
 
-            // Try to find the m4a high bitrate or fallback
-            let format = audioFormats.find(f => f.hasAudio && !f.hasVideo && f.container === 'mp4' && f.audioBitrate >= 128);
-            if (!format) format = audioFormats.find(f => f.hasAudio && !f.hasVideo && f.container === 'mp4');
+            // Harmony Music logic: prefer 251 (opus) or 140 (m4a)
+            let format = audioFormats.find(f => f.itag === 251) ||
+                audioFormats.find(f => f.itag === 140);
+
+            if (!format) format = audioFormats.find(f => f.container === 'mp4' && f.audioBitrate >= 128);
             if (!format) format = audioFormats[0];
 
             if (format && format.url) {
                 const execTime = Date.now() - startTime;
-                logger.info('ytdl-core extraction succeeded', { videoId, execTime, bitrate: format.audioBitrate });
+                logger.info('ytdl-core extraction succeeded', { videoId, execTime, itag: format.itag });
                 return format.url;
             }
-
-            throw new Error('ytdl-core returned no valid audio format URLs');
+            throw new Error('ytdl-core returned no valid audio formats');
         } catch (error) {
             const execTime = Date.now() - startTime;
-            logger.error('ytdl-core extraction failed', { videoId, execTime, error: error.message });
-            throw new Error(`ytdl-core fallback extraction failed: ${error.message}`);
+            logger.error('Full extraction pipeline failed', { videoId, execTime, error: error.message });
+            throw new Error(`Extraction failed: ${error.message}`);
         }
     }
 
     /**
-     * Backup yt-search
+     * Internal helper to use the yt-dlp binary
      */
-    async searchVideosYtDlp(query, limit = 5) {
-        try {
-            if (!r || !r.videos) return [];
-            return r.videos.slice(0, limit).map(v => ({
-                title: v.title,
-                videoId: v.videoId,
-                thumbnail: v.thumbnail || v.image || null,
-                duration: v.seconds || 0
-            }));
-        } catch (error) {
-            throw new Error(`yt-search pure fallback failed: ${error.message}`);
-        }
+    _extractWithBinary(videoId) {
+        return new Promise((resolve, reject) => {
+            const cookiesArg = fs.existsSync(this.cookiesPath) ? `--cookies "${this.cookiesPath}"` : '';
+            // Match Harmony logic: prefer 251 then 140
+            const command = `"${this.ytdlpPath}" ${cookiesArg} -f "251/140/bestaudio" -g "https://www.youtube.com/watch?v=${videoId}"`;
+
+            exec(command, (error, stdout, stderr) => {
+                if (error) {
+                    return reject(new Error(stderr || error.message));
+                }
+                const url = stdout.trim();
+                if (url && url.startsWith('http')) {
+                    resolve(url);
+                } else {
+                    reject(new Error('yt-dlp returned invalid URL'));
+                }
+            });
+        });
     }
 }
 

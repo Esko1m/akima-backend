@@ -39,20 +39,33 @@ class PipedApi {
                                 throw new Error('No audio streams found'); // Throw to trigger fallback
                             }
 
-                            // Harmony logic: prefer mp4a (m4a) high bitrate
-                            // `itag == 140` is m4a 128kbps, `251` is opus 160kbps
-                            let bestStream = json.audioStreams.find(s => s.itag === 140);
+                            // Harmony Music logic: prefer high-quality Opus (251) or M4A (140)
+                            // 251: opus @ ~160kbps, 140: m4a @ ~128kbps
+                            let bestStream = json.audioStreams.find(s => s.itag === 251) ||
+                                json.audioStreams.find(s => s.itag === 140);
+
                             if (!bestStream) {
-                                bestStream = json.audioStreams.find(s => s.codec === 'mp4a.40.2') || json.audioStreams[0];
+                                // Fallback to any mp4a or first available stream
+                                bestStream = json.audioStreams.find(s => s.codec && s.codec.includes('mp4a')) ||
+                                    json.audioStreams[0];
                             }
 
                             if (bestStream && bestStream.url) {
-                                resolve({ url: bestStream.url, size: bestStream.contentLength });
+                                logger.info(`Successfully extracted stream from ${baseUrl}`, {
+                                    videoId,
+                                    itag: bestStream.itag,
+                                    codec: bestStream.codec
+                                });
+                                resolve({
+                                    url: bestStream.url,
+                                    size: bestStream.contentLength,
+                                    itag: bestStream.itag
+                                });
                             } else {
-                                throw new Error('No valid playable URL found');
+                                throw new Error('No valid playable URL found in Piped response');
                             }
                         } catch (e) {
-                            logger.warn(`Piped instance ${baseUrl} failed parsing: ${e.message}`);
+                            logger.warn(`Piped instance ${baseUrl} failed: ${e.message}`);
                             try {
                                 const fallbackUrl = await this.getStream(videoId, attempt + 1);
                                 resolve(fallbackUrl);
