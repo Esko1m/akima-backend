@@ -7,7 +7,8 @@ const logger = require('../utils/logger');
  */
 class CobaltService {
     constructor() {
-        this.apiUrl = 'https://api.cobalt.tools/api/json';
+        this.apiUrl = 'https://co.wuk.sh/api/json'; // Update to specialized wuk.sh instance if needed, or stick to current if known to be working. But current is failing.
+        // Actually, let's try a more direct approach or fix the current one by adding more headers.
     }
 
     async extractAudioStream(videoId) {

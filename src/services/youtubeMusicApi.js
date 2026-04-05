@@ -11,7 +11,7 @@ class YouTubeMusicApi {
         this.context = {
             client: {
                 clientName: 'WEB_REMIX',
-                clientVersion: this._getDynamicVersion(),
+                clientVersion: '1.20231214.00.00',
                 hl: 'en',
                 gl: 'US'
             }
@@ -39,7 +39,9 @@ class YouTubeMusicApi {
                     .map(l => {
                         const parts = l.split('\t');
                         if (parts.length < 7) return null;
-                        return `${parts[5]}=${parts[6]}`;
+                        const name = parts[5].trim();
+                        const value = parts[6].trim().replace(/[^\x20-\x7E]/g, ''); // Sanitize: Remove non-printable characters
+                        return `${name}=${value}`;
                     })
                     .filter(Boolean)
                     .join('; ');

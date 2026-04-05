@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const z = require('zod');
-const songModel = require('../models/songModel');
 const cacheService = require('../services/cacheService');
 const logger = require('../utils/logger');
 
@@ -25,31 +24,24 @@ router.get('/', async (req, res) => {
             return res.json(cachedResults);
         }
 
-        // First search Telegram library (fast local metadata)
-        const tgResults = await songModel.search(query);
-        const mappedTgResults = tgResults.map(s => ({
-            title: s.title,
-            artist: s.artist,
-            videoId: s.id, // e.g., "tg_123"
-            thumbnail: s.thumbnail,
-            duration: s.duration,
-            source: 'telegram'
-        }));
-
-        // Fetch from YouTube Music
-        const ytMusicApi = require('../services/youtubeMusicApi');
+        // Fetch from YouTube (using yt-search - the "own" way)
+        const yts = require('yt-search');
         let ytResults = [];
         try {
-            ytResults = await ytMusicApi.search(query);
-            ytResults = ytResults.map(r => ({
-                ...r,
-                source: 'youtube_music'
+            const r = await yts(query);
+            ytResults = r.videos.slice(0, 20).map(v => ({
+                title: v.title,
+                artist: v.author.name,
+                videoId: v.videoId,
+                thumbnail: v.image,
+                duration: v.duration.seconds,
+                source: 'youtube'
             }));
         } catch (e) {
-            logger.warn('YouTube search API failed', { error: e.message });
+            logger.warn('YouTube search (yt-search) failed', { error: e.message });
         }
 
-        const combinedResults = [...mappedTgResults, ...ytResults];
+        const combinedResults = [...ytResults];
 
         // Cache the results (2 hours)
         cacheService.set(cacheKey, combinedResults, 7200);
