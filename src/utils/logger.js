@@ -1,7 +1,6 @@
-/**
- * Custom Logger utility
- * Provides simple formatted logging for requests, errors, and system events.
- */
+const fs = require('fs');
+const path = require('path');
+const LOG_FILE = path.join(__dirname, '../../server-logs.txt');
 
 const formatMessage = (level, message, meta) => {
   const timestamp = new Date().toISOString();
@@ -12,19 +11,35 @@ const formatMessage = (level, message, meta) => {
   return log;
 };
 
+const writeToFile = (msg) => {
+  try {
+    fs.appendFileSync(LOG_FILE, msg + '\n');
+  } catch (err) {
+    // Ignore log file errors
+  }
+};
+
 const logger = {
   info: (message, meta = {}) => {
-    console.log(formatMessage('INFO', message, meta));
+    const msg = formatMessage('INFO', message, meta);
+    console.log(msg);
+    writeToFile(msg);
   },
   error: (message, meta = {}) => {
-    console.error(formatMessage('ERROR', message, meta));
+    const msg = formatMessage('ERROR', message, meta);
+    console.error(msg);
+    writeToFile(msg);
   },
   warn: (message, meta = {}) => {
-    console.warn(formatMessage('WARN', message, meta));
+    const msg = formatMessage('WARN', message, meta);
+    console.warn(msg);
+    writeToFile(msg);
   },
   debug: (message, meta = {}) => {
     if (process.env.NODE_ENV !== 'production') {
-      console.debug(formatMessage('DEBUG', message, meta));
+      const msg = formatMessage('DEBUG', message, meta);
+      console.debug(msg);
+      writeToFile(msg);
     }
   }
 };

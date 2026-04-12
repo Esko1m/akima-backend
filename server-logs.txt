@@ -1,0 +1,131 @@
+[2026-04-12T01:02:13.111Z] [INFO] Akima Local Backend running on http://localhost:3000
+[2026-04-12T01:02:40.211Z] [INFO] Search cache miss, stored in cache | {"query":"IDM music","count":14}
+[2026-04-12T01:02:40.215Z] [INFO] 192.168.214.14 - GET /search?q=IDM%20music HTTP/1.1 200 3033 - 2462.404 ms
+[2026-04-12T01:02:51.851Z] [INFO] Search cache miss, stored in cache | {"query":"Jeene laga ","count":20}
+[2026-04-12T01:02:51.852Z] [INFO] 192.168.214.14 - GET /search?q=Jeene%20laga%20 HTTP/1.1 200 4929 - 1309.327 ms
+[2026-04-12T01:02:53.159Z] [INFO] Search cache miss, stored in cache | {"query":"Jeene laga hoon","count":20}
+[2026-04-12T01:02:53.162Z] [INFO] 192.168.214.14 - GET /search?q=Jeene%20laga%20hoon HTTP/1.1 200 5109 - 1306.410 ms
+[2026-04-12T01:02:56.550Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:02:56.892Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:02:59.848Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:00.060Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 2 - 3509.635 ms
+[2026-04-12T01:03:00.099Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:00.569Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:00.576Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 2 - 3682.642 ms
+[2026-04-12T01:03:00.694Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:03.873Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:04.555Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:04.563Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 30029700 - 3714.939 ms
+[2026-04-12T01:03:06.393Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:06.848Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 30029700 - 6728.656 ms
+[2026-04-12T01:03:06.861Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:07.275Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:09.702Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:16.247Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 29898628 - 3231.318 ms
+[2026-04-12T01:03:16.262Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:19.167Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:23.510Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 29898628 - 3549.744 ms
+[2026-04-12T01:03:23.524Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:25.107Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 29570948 - 3285.017 ms
+[2026-04-12T01:03:25.120Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:26.599Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:28.864Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:32.419Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 29243268 - 3464.451 ms
+[2026-04-12T01:03:32.434Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:35.104Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:40.991Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 28915588 - 3060.307 ms
+[2026-04-12T01:03:41.018Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:44.151Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:49.621Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 28587908 - 3508.253 ms
+[2026-04-12T01:03:49.635Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:52.719Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:53.121Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 28260228 - 3468.630 ms
+[2026-04-12T01:03:53.134Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:54.907Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 29243268 - 4141.560 ms
+[2026-04-12T01:03:54.916Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:56.140Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:57.526Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 28129156 - 3374.643 ms
+[2026-04-12T01:03:57.541Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:58.131Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:03:58.544Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 28260228 - 3594.226 ms
+[2026-04-12T01:03:58.560Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:00.836Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:01.312Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27932548 - 3684.345 ms
+[2026-04-12T01:04:01.325Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:01.906Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:03.345Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 28129156 - 3714.614 ms
+[2026-04-12T01:04:03.361Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:04.066Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:05.468Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27801476 - 3140.044 ms
+[2026-04-12T01:04:05.498Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:06.430Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:06.933Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27932548 - 3461.369 ms
+[2026-04-12T01:04:06.947Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:08.630Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:09.079Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27604868 - 3536.710 ms
+[2026-04-12T01:04:09.094Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:09.807Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:11.229Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27801476 - 3258.397 ms
+[2026-04-12T01:04:11.243Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:11.991Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:14.412Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:14.922Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27604868 - 3569.133 ms
+[2026-04-12T01:04:14.938Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:17.757Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:17.882Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27473796 - 3274.265 ms
+[2026-04-12T01:04:17.897Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:20.751Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:23.676Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27473796 - 3196.917 ms
+[2026-04-12T01:04:23.687Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:26.750Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:26.795Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27146116 - 3245.640 ms
+[2026-04-12T01:04:26.804Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:31.859Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:32.722Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 27146116 - 3460.597 ms
+[2026-04-12T01:04:32.735Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:33.548Z] [INFO] Search cache miss, stored in cache | {"query":"Amsha","count":14}
+[2026-04-12T01:04:33.550Z] [INFO] 192.168.214.14 - GET /search?q=Amsha HTTP/1.1 200 3236 - 1321.725 ms
+[2026-04-12T01:04:34.844Z] [INFO] Search cache miss, stored in cache | {"query":"Amsham","count":15}
+[2026-04-12T01:04:34.845Z] [INFO] 192.168.214.14 - GET /search?q=Amsham HTTP/1.1 200 3438 - 1872.415 ms
+[2026-04-12T01:04:35.645Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:38.370Z] [INFO] Proxy: Starting extraction chain | {"videoId":"r8iPHiciQd0"}
+[2026-04-12T01:04:41.183Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"r8iPHiciQd0"}
+[2026-04-12T01:04:41.265Z] [INFO] 192.168.214.14 - GET /proxy?id=r8iPHiciQd0 HTTP/1.1 206 2 - 2893.988 ms
+[2026-04-12T01:04:41.295Z] [INFO] Proxy: Starting extraction chain | {"videoId":"r8iPHiciQd0"}
+[2026-04-12T01:04:41.451Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 26818436 - 3299.684 ms
+[2026-04-12T01:04:41.457Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:44.629Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:44.880Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"r8iPHiciQd0"}
+[2026-04-12T01:04:44.927Z] [INFO] 192.168.214.14 - GET /proxy?id=r8iPHiciQd0 HTTP/1.1 206 5505796 - 3589.789 ms
+[2026-04-12T01:04:44.938Z] [INFO] Proxy: Starting extraction chain | {"videoId":"r8iPHiciQd0"}
+[2026-04-12T01:04:48.219Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"r8iPHiciQd0"}
+[2026-04-12T01:04:49.226Z] [INFO] 192.168.214.14 - GET /proxy?id=r8iPHiciQd0 HTTP/1.1 206 5358340 - 3305.063 ms
+[2026-04-12T01:04:49.248Z] [INFO] Proxy: Starting extraction chain | {"videoId":"r8iPHiciQd0"}
+[2026-04-12T01:04:50.560Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 26490756 - 3543.146 ms
+[2026-04-12T01:04:50.578Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:52.135Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"r8iPHiciQd0"}
+[2026-04-12T01:04:52.157Z] [INFO] 192.168.214.14 - GET /proxy?id=r8iPHiciQd0 HTTP/1.1 206 134008 - 2892.599 ms
+[2026-04-12T01:04:53.708Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:04:59.419Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 26163076 - 3548.181 ms
+[2026-04-12T01:04:59.426Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:05:02.286Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:05:02.673Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 25835396 - 3233.328 ms
+[2026-04-12T01:05:02.683Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:05:05.879Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:05:07.311Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 25704324 - 3607.071 ms
+[2026-04-12T01:05:07.322Z] [INFO] Proxy: Starting extraction chain | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:05:10.693Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"MmmfOK0cs0Q"}
+[2026-04-12T01:05:11.352Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 25507716 - 3756.832 ms
+[2026-04-12T01:05:12.776Z] [INFO] 192.168.214.14 - GET /proxy?id=MmmfOK0cs0Q HTTP/1.1 206 26818436 - 5435.561 ms
+[2026-04-12T01:07:38.515Z] [INFO] Proxy: Starting extraction chain | {"videoId":"56dBN2Gca2o"}
+[2026-04-12T01:07:41.508Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"56dBN2Gca2o"}
+[2026-04-12T01:07:41.829Z] [INFO] 192.168.214.14 - GET /proxy?id=56dBN2Gca2o HTTP/1.1 206 2 - 3312.818 ms
+[2026-04-12T01:07:41.880Z] [INFO] Proxy: Starting extraction chain | {"videoId":"56dBN2Gca2o"}
+[2026-04-12T01:07:44.801Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"56dBN2Gca2o"}
+[2026-04-12T01:07:44.867Z] [INFO] 192.168.214.14 - GET /proxy?id=56dBN2Gca2o HTTP/1.1 206 1774563 - 2961.098 ms
+[2026-04-12T01:07:44.885Z] [INFO] Proxy: Starting extraction chain | {"videoId":"56dBN2Gca2o"}
+[2026-04-12T01:07:47.892Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"56dBN2Gca2o"}
+[2026-04-12T01:07:48.167Z] [INFO] 192.168.214.14 - GET /proxy?id=56dBN2Gca2o HTTP/1.1 206 1627107 - 3063.389 ms
+[2026-04-12T01:07:48.250Z] [INFO] Proxy: Starting extraction chain | {"videoId":"56dBN2Gca2o"}
+[2026-04-12T01:07:51.758Z] [INFO] Proxy: Extraction success (local-cookies), starting stream | {"videoId":"56dBN2Gca2o"}
+[2026-04-12T01:07:51.776Z] [INFO] 192.168.214.14 - GET /proxy?id=56dBN2Gca2o HTTP/1.1 206 142696 - 3519.153 ms
