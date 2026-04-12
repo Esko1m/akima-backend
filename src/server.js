@@ -9,6 +9,7 @@ const logger = require('./utils/logger');
 const searchRoute = require('./routes/search');
 const streamRoute = require('./routes/stream');
 const proxyRoute = require('./routes/proxy');
+const relatedRoute = require('./routes/related');
 
 // Services
 // (No special services needed for core routes)
@@ -45,6 +46,7 @@ app.use(morgan('short', {
 app.use('/search', searchRoute);
 app.use('/stream', streamRoute);
 app.use('/proxy', proxyRoute);
+app.use('/related', relatedRoute);
 
 // Health check / Base Endpoint with Landing Page
 app.get('/', (req, res) => {
